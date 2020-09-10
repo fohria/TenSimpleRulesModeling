@@ -92,5 +92,11 @@ ws = [sim[0]["wsls"][i][1] for i in range(len(sim[0]["wsls"]))]
 wsls = [mean(ls), mean(ws)]  # again, confusing variable name and positions
 #%%
 sns.set(rc={"figure.figsize": (4, 6), "figure.dpi": 100, "lines.markersize": 15})
+sns.set_style("white")
+# sns.set_style("ticks")
 fig = sns.lineplot(x=[0, 1], y=wsls, marker="o")
-fig.set(ylim=(0, 1))
+fig.set(ylim=(0, 1), yticks=(0, 0.5, 1), xticks=(0, 1));
+fig.set(xlabel="previous reward")
+fig.set(ylabel="p(stay)")
+fig.set(title="stay behavior")
+sns.despine()
