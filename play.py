@@ -82,15 +82,19 @@ assert b == 0.5 and round(sum([sum(rep) / T for rep in sim[0]['r']]) / Nrep, 1) 
 # %%
 
 # now we do the WSLS analysis
-sim[0]["wsls"] = []  # again, python has to predeclare variables
 
-for n in range(Nrep):
-    sim[0]["wsls"].append(analysis_WSLS_v1(sim[0]["a"][n], sim[0]["r"][n]))
+for i in range(len(sim)):
+    sim[i]["wsls"] = []  # again, python has to predeclare variables
 
-ls = [sim[0]["wsls"][i][0] for i in range(len(sim[0]["wsls"]))]
-ws = [sim[0]["wsls"][i][1] for i in range(len(sim[0]["wsls"]))]
-wsls = [mean(ls), mean(ws)]  # again, confusing variable name and positions
+    for n in range(Nrep):
+        sim[i]["wsls"].append(analysis_WSLS_v1(sim[i]["a"][n], sim[i]["r"][n]))
+
+    ls = [sim[i]["wsls"][i][0] for i in range(len(sim[i]["wsls"]))]
+    ws = [sim[i]["wsls"][i][1] for i in range(len(sim[i]["wsls"]))]
+    wsls = [mean(ls), mean(ws)]  # again, confusing variable name and positions, i believe it's done for easier plotting 0-1 below but imho that translation should be done when you plot not here. or just name it lsws 
+
 #%%
+# PLOTTING TIME
 sns.set(rc={"figure.figsize": (4, 6), "figure.dpi": 100, "lines.markersize": 15})
 sns.set_style("white")
 # sns.set_style("ticks")
