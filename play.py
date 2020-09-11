@@ -5,11 +5,12 @@ okay so our plan here will be to start simple and just investigate how the diffe
 - overall task: copy matlab code
 .
 - [DONE] simulate model 1 - random with bias
-- create analysis_WSLS_v1 function
+- [DONE] create analysis_WSLS_v1 function
+- simulate model2 - noisy wsls
 .
 .
 .
-- later task: rewrite everything to be more pythonic and with not stupid variable names. likely also with pandas as some of the matlab for loops would instead become apply functions.
+- later task: rewrite everything to be more pythonic and with not stupid variable names. likely also with pandas as some of the matlab for loops would instead become apply functions. and do it literate programming style, so introduce model1 in text with formulas and then the code. and so on. perhaps in notebook style, could test vscode's new notebooks perhaps.
 """
 
 """ MAIN IMPORTS """
@@ -18,6 +19,7 @@ okay so our plan here will be to start simple and just investigate how the diffe
 %autoreload 2
 #%%
 from SimulationFunctions.simulate_M1random_v1 import simulate_M1random_v1
+from SimulationFunctions.simulate_M2WSLS_v1 import simulate_M2WSLS_v1
 from AnalysisFunctions.analysis_WSLS_v1 import analysis_WSLS_v1
 
 from numpy import mean
@@ -58,7 +60,7 @@ another take from here https://stackoverflow.com/questions/3742650/naming-conven
 # %%
 # MODEL1 - RANDOM with bias
 
-sim = []  # python needs this to be declared before we can put stuff into it below
+sim = [0]  # python needs this to be declared before we can put stuff into it below, the 0 is only a dummy entry in order to get equivalence with matlab numbering so we can use sim[1] for model 1 below insteal of sim[0] for model1
 sim.append({"a": [], "r": []})  # this also needs to be setup before adding
 
 for n in range(Nrep):
@@ -67,40 +69,54 @@ for n in range(Nrep):
 
     b for bias is also funny how we can see this is math-first people writing the code. why not just call this variable bias so we can _read_ the code instead of having to _interpret_ it? huh, that's actually a nice catchy line. could become a blog post. 'reading code versus interpreting'"""
 
-    # again here we might as well just call things action and reward !!
+    # again here we might as well just call things action and reward to increase readability
+    # an additional advantage of using 'action' instead of 'a' is that you can then also use 'actions' to indicate a list/array. below it's unclear at first glance if you get back single actions or multiple from the simulate function.
     a, r = simulate_M1random_v1(T, mu, b)
-    sim[0]["a"].append(a)  # python uses 0 indexing wheras matlab start at 1
-    sim[0]["r"].append(r)
+    sim[1]["a"].append(a)  # python uses 0 indexing wheras matlab start at 1
+    sim[1]["r"].append(r)
 
 # %%
 # let's test function quickly
 # with b=0.5 we should have ~0.5 of each choice
-assert b == 0.5 and round(sum([sum(rep) / T for rep in sim[0]['a']]) / Nrep, 1) == 0.5, "something's up with the action selection in random simulation"
+assert b == 0.5 and round(sum([sum(rep) / T for rep in sim[1]['a']]) / Nrep, 1) == 0.5, "something's up with the action selection in random simulation"
 # and reward should also be ~0.5
-assert b == 0.5 and round(sum([sum(rep) / T for rep in sim[0]['r']]) / Nrep, 1) == 0.5, "something's up with the rewards in random simulation"
+assert b == 0.5 and round(sum([sum(rep) / T for rep in sim[1]['r']]) / Nrep, 1) == 0.5, "something's up with the rewards in random simulation"
 
 # %%
 
-# now we do the WSLS analysis
+# MODEL 2 : WIN STAY LOSE SHIFT
 
-for i in range(len(sim)):
+sim.append({"a": [], "r": []})  # setting up empty lists
+
+for n in range(Nrep):
+    epsilon = 0.1
+    a, r = simulate_M2WSLS_v1(T, mu, epsilon)
+    sim[2]["a"].append(a)
+    sim[2]["r"].append(r)
+
+# %%
+# now we do the WSLS analysis
+wsls = []
+for i in range(1, len(sim)):
     sim[i]["wsls"] = []  # again, python has to predeclare variables
 
     for n in range(Nrep):
         sim[i]["wsls"].append(analysis_WSLS_v1(sim[i]["a"][n], sim[i]["r"][n]))
 
-    ls = [sim[i]["wsls"][i][0] for i in range(len(sim[i]["wsls"]))]
-    ws = [sim[i]["wsls"][i][1] for i in range(len(sim[i]["wsls"]))]
-    wsls = [mean(ls), mean(ws)]  # again, confusing variable name and positions, i believe it's done for easier plotting 0-1 below but imho that translation should be done when you plot not here. or just name it lsws 
+    ls = [sim[i]["wsls"][x][0] for x in range(len(sim[i]["wsls"]))]
+    ws = [sim[i]["wsls"][x][1] for x in range(len(sim[i]["wsls"]))]
+    wsls.append([mean(ls), mean(ws)])  # again, confusing variable name and positions, i believe it's done for easier plotting 0-1 below but imho that translation should be done when you plot not here. or just name it lsws
 
 #%%
+
 # PLOTTING TIME
-sns.set(rc={"figure.figsize": (4, 6), "figure.dpi": 100, "lines.markersize": 15})
+sns.set(rc={"figure.figsize": (5, 6), "figure.dpi": 100, "lines.markersize": 15, "lines.linewidth": 3})
 sns.set_style("white")
 # sns.set_style("ticks")
-fig = sns.lineplot(x=[0, 1], y=wsls, marker="o")
+fig = sns.lineplot(x=[0, 1], y=wsls[0], marker="o")
+fig = sns.lineplot(x=[0, 1], y=wsls[1], marker="o")
 fig.set(ylim=(0, 1), yticks=(0, 0.5, 1), xticks=(0, 1));
 fig.set(xlabel="previous reward")
 fig.set(ylabel="p(stay)")
 fig.set(title="stay behavior")
-sns.despine()
+sns.despine(ax=fig)

@@ -1,4 +1,3 @@
-# import numpy as np
 from numpy.random import random
 from .choose import choose
 
@@ -16,8 +15,7 @@ def simulate_M1random_v1(T, mu, b):
         # a.append(np.random.choice([0, 1], p=p))
         a.append(choose(p))
 
-        #
-        # i never realised i rely on square brackets to signify specific things in python, regular brackets looks like functions and not lists to me!
+        # generate reward based on choice
         r.append(random() < mu[a[t]])
 
     return a, r
