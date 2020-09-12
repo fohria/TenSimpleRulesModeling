@@ -20,6 +20,7 @@ okay so our plan here will be to start simple and just investigate how the diffe
 #%%
 from SimulationFunctions.simulate_M1random_v1 import simulate_M1random_v1
 from SimulationFunctions.simulate_M2WSLS_v1 import simulate_M2WSLS_v1
+from SimulationFunctions.simulate_M3RescorlaWagner_v1 import simulate_M3RescorlaWagner_v1
 from AnalysisFunctions.analysis_WSLS_v1 import analysis_WSLS_v1
 
 from numpy import mean
@@ -95,6 +96,33 @@ for n in range(Nrep):
     sim[2]["r"].append(r)
 
 # %%
+# MODEL 3 : RESCORLA WAGNER
+
+sim.append({"a": [], "r": []})
+
+for n in range(Nrep):
+    alpha = 0.1
+    beta = 5
+    a, r = simulate_M3RescorlaWagner_v1(T, mu, alpha, beta)
+    sim[3]["a"].append(a)
+    sim[3]["r"].append(r)
+
+# %%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# %%
 # now we do the WSLS analysis
 wsls = []
 for i in range(1, len(sim)):
@@ -113,8 +141,9 @@ for i in range(1, len(sim)):
 sns.set(rc={"figure.figsize": (5, 6), "figure.dpi": 100, "lines.markersize": 15, "lines.linewidth": 3})
 sns.set_style("white")
 # sns.set_style("ticks")
-fig = sns.lineplot(x=[0, 1], y=wsls[0], marker="o")
-fig = sns.lineplot(x=[0, 1], y=wsls[1], marker="o")
+fig = sns.lineplot(x=[0, 1], y=wsls[0], marker="o", label="M1")
+fig = sns.lineplot(x=[0, 1], y=wsls[1], marker="o", label="M2")
+fig = sns.lineplot(x=[0, 1], y=wsls[2], marker="o", label="M3")
 fig.set(ylim=(0, 1), yticks=(0, 0.5, 1), xticks=(0, 1));
 fig.set(xlabel="previous reward")
 fig.set(ylabel="p(stay)")
