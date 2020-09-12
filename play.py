@@ -6,7 +6,9 @@ okay so our plan here will be to start simple and just investigate how the diffe
 .
 - [DONE] simulate model 1 - random with bias
 - [DONE] create analysis_WSLS_v1 function
-- simulate model2 - noisy wsls
+- [DONE] simulate model2 - noisy wsls
+- [DONE] simulate model 3 - RW
+- simulate model4
 .
 .
 .
@@ -21,6 +23,7 @@ okay so our plan here will be to start simple and just investigate how the diffe
 from SimulationFunctions.simulate_M1random_v1 import simulate_M1random_v1
 from SimulationFunctions.simulate_M2WSLS_v1 import simulate_M2WSLS_v1
 from SimulationFunctions.simulate_M3RescorlaWagner_v1 import simulate_M3RescorlaWagner_v1
+from SimulationFunctions.simulate_M4ChoiceKernel_v1 import simulate_M4ChoiceKernel_v1
 from AnalysisFunctions.analysis_WSLS_v1 import analysis_WSLS_v1
 
 from numpy import mean
@@ -109,9 +112,18 @@ for n in range(Nrep):
 
 # %%
 
+# MODEL 4 : CHOICE KERNEL
 
+sim.append({"a": [], "r": []})
 
+for n in range(Nrep):
+    alpha_c = 0.1
+    beta_c = 3
+    a, r = simulate_M4ChoiceKernel_v1(T, mu, alpha_c, beta_c)
+    sim[4]["a"].append(a)
+    sim[4]["r"].append(r)
 
+# %%
 
 
 
@@ -144,6 +156,7 @@ sns.set_style("white")
 fig = sns.lineplot(x=[0, 1], y=wsls[0], marker="o", label="M1")
 fig = sns.lineplot(x=[0, 1], y=wsls[1], marker="o", label="M2")
 fig = sns.lineplot(x=[0, 1], y=wsls[2], marker="o", label="M3")
+fig = sns.lineplot(x=[0, 1], y=wsls[3], marker="o", label="M4")
 fig.set(ylim=(0, 1), yticks=(0, 0.5, 1), xticks=(0, 1));
 fig.set(xlabel="previous reward")
 fig.set(ylabel="p(stay)")
