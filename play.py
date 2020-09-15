@@ -8,11 +8,14 @@ okay so our plan here will be to start simple and just investigate how the diffe
 - [DONE] create analysis_WSLS_v1 function
 - [DONE] simulate model2 - noisy wsls
 - [DONE] simulate model 3 - RW
-- simulate model4
+- [DONE] simulate model4
+- [DONE] simulate model5
+- [DONE] plot early/late trials as per figure1 box2
 .
 .
 .
-- later task: rewrite everything to be more pythonic and with not stupid variable names. likely also with pandas as some of the matlab for loops would instead become apply functions. and do it literate programming style, so introduce model1 in text with formulas and then the code. and so on. perhaps in notebook style, could test vscode's new notebooks perhaps.
+- clean up code and replace comprehensions with numpy
+- later task: rewrite everything to be more pythonic and with less confusing variable names. can explore pandas vs "pure" numpy as some of the matlab for loops would instead become apply functions and/or how easy plotting gets. and do it literate programming style, so introduce model1 in text with formulas and then the code. and so on. perhaps in notebook style, could test vscode's new notebooks perhaps.
 """
 
 """ MAIN IMPORTS """
@@ -158,13 +161,76 @@ for i in range(1, len(sim)):
 sns.set(rc={"figure.figsize": (5, 6), "figure.dpi": 100, "lines.markersize": 15, "lines.linewidth": 3})
 sns.set_style("white")
 # sns.set_style("ticks")
-fig = sns.lineplot(x=[0, 1], y=wsls[0], marker="o", label="M1")
-fig = sns.lineplot(x=[0, 1], y=wsls[1], marker="o", label="M2")
-fig = sns.lineplot(x=[0, 1], y=wsls[2], marker="o", label="M3")
-fig = sns.lineplot(x=[0, 1], y=wsls[3], marker="o", label="M4")
-fig = sns.lineplot(x=[0, 1], y=wsls[4], marker="o", label="M5")
+fig = sns.lineplot(x=[0, 1], y=wsls[0], marker="o", label="M1: random")
+fig = sns.lineplot(x=[0, 1], y=wsls[1], marker="o", label="M2: WSLS")
+fig = sns.lineplot(x=[0, 1], y=wsls[2], marker="o", label="M3: RW")
+fig = sns.lineplot(x=[0, 1], y=wsls[3], marker="o", label="M4: CK")
+fig = sns.lineplot(x=[0, 1], y=wsls[4], marker="o", label="M5: RW+CK")
 fig.set(ylim=(0, 1), yticks=(0, 0.5, 1), xticks=(0, 1));
 fig.set(xlabel="previous reward")
 fig.set(ylabel="p(stay)")
 fig.set(title="stay behavior")
 sns.despine(ax=fig)
+
+# %%
+# p(correct) analysis
+
+alphas = [x / 100 for x in range(2, 102, 2)]  # can't do float ranges in native python but this works just as well
+betas = [1, 2, 5, 10, 20]
+
+# we could do the below more nicely in python by using the product function which creates a generator for all item combinations of two lists, i.e. product([a,b], [c,d]) = [(a,c), (a,d), (b,c), (b,d)] but for now let's keep parity with the matlab code
+
+# also; now we really see how convoluted things get when we refuse to use numpy, as here we have to preemptively fill nested python lists in order to "copy" the matlab code
+correct = [ [ [None for x in range(1000)] for y in range(len(betas)) ] for z in range(len(alphas)) ]
+correctEarly = [ [ [None for x in range(1000)] for y in range(len(betas)) ] for z in range(len(alphas)) ]
+correctLate = [ [ [None for x in range(1000)] for y in range(len(betas)) ] for z in range(len(alphas)) ]
+
+# so, it's common to use i and j for counters, but we've again this "interpreting code vs reading". especially for the correct/early/late below, it makes sense to do it that way in matlab as you can easily create and manipulate 3 dimensional matrices but even then, i'd argue it's confusing to work with. you'll have to remember what each dimension represents, as there are no names for them.
+
+for n in range(1000):
+    print(n)
+
+    for i in range(len(alphas)):
+        for j in range(len(betas)):
+            a, r = simulate_M3RescorlaWagner_v1(T, mu, alphas[i], betas[j])
+            # matlab has a really sneaky syntax to get the index of the max value, nice when you know but not necessarily the easiest to get if you're just reading the code
+            # numpy has argmax to get the index, which would be the easiest solution but comprehensions can be used in creative ways to get the same result (full disclosure i found it here https://stackoverflow.com/a/13989707 and i love it)
+            _, imax = max((v, i) for i, v in enumerate(mu))
+            # we create temporary lists to avoid creating them twice
+            corrects = [x == imax for x in a]
+            correct[i][j][n] = sum(corrects) / len(corrects)
+            corrects = [x == imax for x in a[:10]]
+            correctEarly[i][j][n] = sum(corrects) / len(corrects)
+            corrects = [x == imax for x in a[-10:]]
+            correctLate[i][j][n] = sum(corrects) / len(corrects)
+
+# the order of the for loops matter here in order to be able to plot them below
+E = [sum(correctEarly[i][j]) / 1000 for j in range(len(betas)) for i in range(len(alphas))]
+L = [sum(correctLate[i][j]) / 1000 for j in range(len(betas)) for i in range(len(alphas))]
+
+# %%
+# early trials plot
+sns.set_style("ticks")
+fig2 = sns.lineplot(x=alphas, y=E[0:50], label="beta=1")
+fig2 = sns.lineplot(x=alphas, y=E[50:100], label="beta=2")
+fig2 = sns.lineplot(x=alphas, y=E[100:150], label="beta=5")
+fig2 = sns.lineplot(x=alphas, y=E[150:200], label="beta=10")
+fig2 = sns.lineplot(x=alphas, y=E[200:250], label="beta=20")
+fig2.set(ylim=(0.5,1), xticks=(0, 0.5, 1))
+fig2.set(xlabel="learning rate alpha")
+fig2.set(ylabel="p(correct)")
+fig2.set(title="early trials")
+sns.despine()
+# %%
+# late trials
+sns.set_style("ticks")
+fig3 = sns.lineplot(x=alphas, y=L[0:50], label="beta=1")
+fig3 = sns.lineplot(x=alphas, y=L[50:100], label="beta=2")
+fig3 = sns.lineplot(x=alphas, y=L[100:150], label="beta=5")
+fig3 = sns.lineplot(x=alphas, y=L[150:200], label="beta=10")
+fig3 = sns.lineplot(x=alphas, y=L[200:250], label="beta=20")
+fig3.set(ylim=(0.5,1), xticks=(0, 0.5, 1))
+fig3.set(xlabel="learning rate alpha")
+fig3.set(ylabel="p(correct)")
+fig3.set(title="late trials")
+sns.despine()

@@ -18,7 +18,7 @@ def simulate_M5RWCK_v1(T, mu, alpha, beta, alpha_c, beta_c):
         # at the same time, perhaps these extra lines make the math more clear to someone more used to python than (linear) algebra
         qs = [beta * q for q in Q]
         cks = [beta_c * ck for ck in CK]
-        V = [q + ck for q, ck in zip(qs, cks)]  # V = values? vector? somewhat unclear
+        V = [q + ck for q, ck in zip(qs, cks)]  # V = values? vector? somewhat unclear. anyway, zip is a sneaky and useful python function to combine elements from two arrays like zip([a, b], [c, d]) = [(a, c), (b, d)]
         denominator = sum([exp(v) for v in V])
         p = [exp(v) / denominator for v in V]
 
