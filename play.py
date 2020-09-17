@@ -71,7 +71,7 @@ for trial, state in enumerate(trials):
 
     # action choice
     # numpy has a really nice function to make a random choice between X choices
-    choice = np.random.choice([0, 1, 2])
+    choice = np.random.choice([0, 1, 2], p=probabilities)
     choices.append(choice)
 
     # reward correct action (arbitrarily defined)
@@ -112,10 +112,10 @@ def RLWM(rho, setsize, K, beta, alpha):
         # mixture policy
         probabilities = (1-w) * softmax1 + w * softmax2
 
-        choice = np.random.choice([0, 1, 2])
+        choice = np.random.choice([0, 1, 2], p=probabilities)
         choices.append(choice)
 
-        reward = choice == state % 3
+        reward = choice == (state % 3)
         rewards.append(reward)
 
         Q[state, choice] += alpha * (reward - Q[state, choice])
@@ -134,6 +134,7 @@ for rep in range(3):
     for ns in range(2,7):  # up to but not including 7
         block += 1
         stimuli, choices, rewards = RLWM(realrho, ns, realK, realbeta, realalpha)
+        assert len(stimuli) == len(choices) and len(choices) == len(rewards)
         data = np.array([
             rewards, choices, stimuli,
             np.repeat(ns, len(stimuli)),
@@ -146,8 +147,10 @@ for rep in range(3):
 
 
 # %%
-df
-
+for ns in range(2, 7):
+    print(df[df["setsize"] == ns]["reward"].mean())
+# %%
+df[df["setsize"] == ns]["reward"]
 
 
 
@@ -191,3 +194,17 @@ bla2 = pd.DataFrame(columns=column_names, data=hey.transpose())
 df.append(bla2)
 df
 # then we can experiment with multiindex pandas to keep track of all likelihoods perhaps? good practice
+rew = choice == (state % 3)
+1 % 3
+
+np.sum(np.exp(10 * np.array([0.5, 0.5, 0.55])))
+
+np.exp(10 * np.array([0.5, 0.5, 0.55])) / sum(np.exp(10 * np.array([0.5, 0.5, 0.55])))
+
+bla = np.exp(10 * np.array([0.5, 0.5, 0.55]))
+bla
+
+bla / np.sum(bla)
+
+np.exp(beta * Q[state])
+softmax1 = softmax1_value / np.sum(softmax1_value)
