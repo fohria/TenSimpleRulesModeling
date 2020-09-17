@@ -31,15 +31,15 @@ b=0;
 t=0;
 for rep=1:3 % three repetitions of each set size
     for ns=2:6 % block of set size ns
-        b=b+1;
-        update(t+1)=1;
+        b=b+1; % this is never used, i think its counting blocks but not sure why its here
+        update(t+1)=1; % okay this is needed in below likelihood calculation loops to find where new blocks are located
         % initialize WM mixture weight
         w=realrho*(min(1,realK/ns));
         % initialize RL and WM agents
         Q = .5+zeros(ns,3);
         WM = .5+zeros(ns,3);
         %define a sequence of trials with 15 iterations of each stimulus
-        trials = repmat(1:ns,1,15);
+        trials = repmat(1:ns,1,15); % so this creates a 1d array, 15 x ns long
         % loop over trials
         for s=trials
             t=t+1;
@@ -71,6 +71,7 @@ for rep=1:3 % three repetitions of each set size
 end
 % check that it worked by making sure that performance in higher set sizes
 % is lower than in high set sizes
+% note: this check is only true sometimes, due to randomness, so im not sure what authors thoughts are on that, to re-run until this check shows what they want?
 update(t)=0;
 for ns=2:6
     [ns mean(rew(setsize==ns))]
@@ -156,4 +157,4 @@ for i=1%:4
 end
 
 %% save resulting figure
-saveFigurePdf(gcf, '~/Desktop/Figure3b')
+% saveFigurePdf(gcf, '~/Desktop/Figure3b')

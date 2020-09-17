@@ -1,236 +1,193 @@
 """
-okay so our plan here will be to start simple and just investigate how the different models work
 
-- [DONE] lets create a conda environment to keep things neat
-- overall task: copy matlab code
-.
-- [DONE] simulate model 1 - random with bias
-- [DONE] create analysis_WSLS_v1 function
-- [DONE] simulate model2 - noisy wsls
-- [DONE] simulate model 3 - RW
-- [DONE] simulate model4
-- [DONE] simulate model5
-- [DONE] plot early/late trials as per figure1 box2
+TODO:
+
+- [DONE] read up on experimental task in paper
+- go through matlab code .. in matlab :)
+
+
+- recreate fig3/box3; gonna be tedious as authors don't actually define the model in appendix4 they mainly refer to another paper. which is not open access.
 .
 .
-.
-- clean up code and replace comprehensions with numpy
-- later task: rewrite everything to be more pythonic and with less confusing variable names. can explore pandas vs "pure" numpy as some of the matlab for loops would instead become apply functions and/or how easy plotting gets. and do it literate programming style, so introduce model1 in text with formulas and then the code. and so on. perhaps in notebook style, could test vscode's new notebooks perhaps.
+
+EXPERIMENT TASK:
+
+okay so task is basically; you see a picture and have three buttons to press: find the correct button by trial and error. ns = setsize/number of stimuli, i.e. how many pictures were there to learn.
+
+"six blocks in which nS = 2, four blocks in which nS = 3, and three blocks each of nS=4,5,or6 for a total of 19 blocks, and a maximum of 50 min."
+
 """
 
-""" MAIN IMPORTS """
+""" BOX3/FIG3 """
 
 %load_ext autoreload
 %autoreload 2
 #%%
-from SimulationFunctions.simulate_M1random_v1 import simulate_M1random_v1
-from SimulationFunctions.simulate_M2WSLS_v1 import simulate_M2WSLS_v1
-from SimulationFunctions.simulate_M3RescorlaWagner_v1 import simulate_M3RescorlaWagner_v1
-from SimulationFunctions.simulate_M4ChoiceKernel_v1 import simulate_M4ChoiceKernel_v1
-from SimulationFunctions.simulate_M5RWCK_v1 import simulate_M5RWCK_v1
-from AnalysisFunctions.analysis_WSLS_v1 import analysis_WSLS_v1
-
-from numpy import mean
-import seaborn as sns
-
+import numpy as np
+import pandas as pd
+# %%
 """
-INTRO
-
-so, a participant makes a series of T choices between K slot machines, or ‘one-armed bandits’, to try to maximize their earnings. If played on trial t, each slot machine, k, pays out a reward, rt, which is one with reward probability, μkt, and otherwise 0.
-
-The reward probabilities are different for each slot machine and are initially unknown to the subject. In the simplest version of the task, the reward probabilities are fixed over time.
-
-The three experimental parameters of this task are: the number of trials, T, the number of slot machines, K, and the reward probabilities of the different options, μkt, which may or may not change over time. The settings of these parameters will be important for determining exactly what information we can extract from the experiment. In this example, we will assume that T=1000, K=2, and that the reward probabilities are μ1t=0.2 for slot machine 1 and μ2t=0.8 for slot machine 2.
-
+why is this model not included in the "SimulationFunctions"? it's a bit weird they've picked a completely different experimental task and model for this figure compared to the previous figure.
 """
 
-"""
-# BOX1 / Box2/ Figure 2
+# lets simulate above described task
+realalpha = 0.1
+realbeta = 10
+realrho = 0.9
+realK = 4
 
-hmm it's funny they say above K=2 but they just use that implicitly everywhere, i mean i get this is an example but they could've made it a bit more general. but i guess that's something for us to try to do later!
+# lets start with set size ns=2 and just one loop through the 15x2 trials
+ns = 2
 
+# initialize WM (working memory) mixture weight
+w = realrho * np.min([1, realK / ns])
 
+# initialize RL and WM "agents" (i'd personally say "action values" or something along those lines)
+Q = 0.5 + np.zeros([ns, 3])
+WM = 0.5 + np.zeros([ns, 3])
 
-# EXPERIMENT PARAMETERS
-"""
-# %%
+# we use tile instead of repeat so we get [0,1,0,1] instead of [0,0,1,1], in order to have the order similar to matlab code
+trials = np.tile(np.arange(ns), 15)
+# i would perhaps also shuffle the array but maybe that doesn't matter for the algorithm. in the c&f 2012 paper they do have "pseudorandom" presentations within a block but unclear what exactly that means
 
-T = 100  # number of trials
-mu = [0.2, 0.8]  # mean reward of bandits
-"""unfortunate phrasing, as it can be confusing. mu are, according to the main paper text, the reward probabilities not the mean rewards. although over enough trials, since reward is between 0-1 the mean reward will approach the limit of being same as probabilities)"""
+choices = []
+rewards = []
 
-# number of repetitions for simulations
-Nrep = 110
-"""i feel this is also slightly unintuitive. in my mind things get more clear if we call this simulated participants. so instead of seeing this as number of repetitions of simulations, we can see it as 'number of artificial participants' or 'number of fake/simulated participants' or simply 'number of (ro)bots playing'. so i'd probably call this numsims for number of simulations. ideally i'd call it number_of_simulations for full clarity. then you wouldn't need the comment saying it's 'number of repetitions for simulations' ...
+# enumerate will automatically create an index for each stimulus in the trials array; (0,0), (1,1), (2,0), (3,1)
+for trial, state in enumerate(trials):
 
-another take from here https://stackoverflow.com/questions/3742650/naming-conventions-for-number-of-foos-variables is that we could use sim_count """
+    # RL policy
+    # no need to calculate the same thing twice like in the matlab code. not that it's likely to cause much of a difference in speed for this small problem, but it lowers the risk of typing errors (aka brainfarts where you write beta on one line and realbeta on the other)
+    softmax1_value = np.exp(realbeta * Q[state])  # we could also do Q[state, :] like in matlab. matlab however would with Q(3) for example give the single value on first row, second column
+    softmax1 = softmax1_value / np.sum(softmax1_value)
 
-# %%
-# MODEL1 - RANDOM with bias
+    # WM policy
+    # i assume this is the simplification for this paper compared to c&f2012; instead of a beta value for WM policy we just use a high value here to make it greedy, i.e. basically pick the highest value all the time
+    softmax2_value = np.exp(50 * WM[state])
+    softmax2 = softmax2_value / np.sum(softmax2_value)
 
-sim = [0]  # python needs this to be declared before we can put stuff into it below, the 0 is only a dummy entry in order to get equivalence with matlab numbering so we can use sim[1] for model 1 below insteal of sim[0] for model1
-sim.append({"a": [], "r": []})  # this also needs to be setup before adding
+    # mixture policy
+    probabilities = (1-w) * softmax1 + w * softmax2
 
-for n in range(Nrep):
-    b = 0.5
-    """ we could put this b variable outside the loop as there's no reason to reassign each time, in python it would not be contained to within the for loop anyway (ie it remains after for loop)
+    # action choice
+    # numpy has a really nice function to make a random choice between X choices
+    choice = np.random.choice([0, 1, 2])
+    choices.append(choice)
 
-    b for bias is also funny how we can see this is math-first people writing the code. why not just call this variable bias so we can _read_ the code instead of having to _interpret_ it? huh, that's actually a nice catchy line. could become a blog post. 'reading code versus interpreting'"""
+    # reward correct action (arbitrarily defined)
+    # rem is matlabs mod, and we adapt to 0-indexing
+    reward = choice == state % 3
+    rewards.append(reward)
 
-    # again here we might as well just call things action and reward to increase readability
-    # an additional advantage of using 'action' instead of 'a' is that you can then also use 'actions' to indicate a list/array. below it's unclear at first glance if you get back single actions or multiple from the simulate function.
-    a, r = simulate_M1random_v1(T, mu, b)
-    sim[1]["a"].append(a)  # python uses 0 indexing wheras matlab start at 1
-    sim[1]["r"].append(r)
-
-# %%
-# let's test function quickly
-# with b=0.5 we should have ~0.5 of each choice
-assert b == 0.5 and round(sum([sum(rep) / T for rep in sim[1]['a']]) / Nrep, 1) == 0.5, "something's up with the action selection in random simulation"
-# and reward should also be ~0.5
-assert b == 0.5 and round(sum([sum(rep) / T for rep in sim[1]['r']]) / Nrep, 1) == 0.5, "something's up with the rewards in random simulation"
-
-# %%
-
-# MODEL 2 : WIN STAY LOSE SHIFT
-
-sim.append({"a": [], "r": []})  # setting up empty lists
-
-for n in range(Nrep):
-    epsilon = 0.1
-    a, r = simulate_M2WSLS_v1(T, mu, epsilon)
-    sim[2]["a"].append(a)
-    sim[2]["r"].append(r)
-
-# %%
-# MODEL 3 : RESCORLA WAGNER
-
-sim.append({"a": [], "r": []})
-
-for n in range(Nrep):
-    alpha = 0.1
-    beta = 5
-    a, r = simulate_M3RescorlaWagner_v1(T, mu, alpha, beta)
-    sim[3]["a"].append(a)
-    sim[3]["r"].append(r)
+    # update Q and WM values
+    Q[state, choice] += realalpha * (reward - Q[state, choice])
+    WM[state, choice] = reward
 
 # %%
 
-# MODEL 4 : CHOICE KERNEL
+# okay! now do the loops for set sizes and repetitions of each set size. save as pandas table, that'll make it easy to save and later access by label instead of keeping track of what's what
 
-sim.append({"a": [], "r": []})
+# lets create a function for the above model
+def RLWM(rho, setsize, K, beta, alpha):
 
-for n in range(Nrep):
-    alpha_c = 0.1
-    beta_c = 3
-    a, r = simulate_M4ChoiceKernel_v1(T, mu, alpha_c, beta_c)
-    sim[4]["a"].append(a)
-    sim[4]["r"].append(r)
+    w = rho * np.min([1, K / setsize])
+    Q = 0.5 + np.zeros([setsize, 3])
+    WM = 0.5 + np.zeros([setsize, 3])
 
-# %%
+    trials = np.tile(np.arange(setsize), 15)
 
-# MODEL 5 : Rescorla-Wagner plus choice kernel
+    choices = []
+    rewards = []
 
-sim.append({"a": [], "r": []})
+    for state in trials:
 
-for n in range(Nrep):
-    alpha = 0.1
-    beta = 5
-    alpha_c = 0.1
-    beta_c = 1
-    a, r = simulate_M5RWCK_v1(T, mu, alpha, beta, alpha_c, beta_c)
-    sim[5]["a"].append(a)
-    sim[5]["r"].append(r)
+        # RL policy
+        softmax1_value = np.exp(beta * Q[state])
+        softmax1 = softmax1_value / np.sum(softmax1_value)
 
-# %%
-# now we do the WSLS analysis
-wsls = []
-for i in range(1, len(sim)):
-    sim[i]["wsls"] = []  # again, python has to predeclare variables
+        # WM policy
+        softmax2_value = np.exp(50 * WM[state])
+        softmax2 = softmax2_value / np.sum(softmax2_value)
 
-    for n in range(Nrep):
-        sim[i]["wsls"].append(analysis_WSLS_v1(sim[i]["a"][n], sim[i]["r"][n]))
+        # mixture policy
+        probabilities = (1-w) * softmax1 + w * softmax2
 
-    ls = [sim[i]["wsls"][x][0] for x in range(len(sim[i]["wsls"]))]
-    ws = [sim[i]["wsls"][x][1] for x in range(len(sim[i]["wsls"]))]
-    wsls.append([mean(ls), mean(ws)])  # again, confusing variable name and positions, i believe it's done for easier plotting 0-1 below but imho that translation should be done when you plot not here. or just name it lsws
+        choice = np.random.choice([0, 1, 2])
+        choices.append(choice)
 
-#%%
+        reward = choice == state % 3
+        rewards.append(reward)
 
-# PLOTTING TIME
-sns.set(rc={"figure.figsize": (5, 6), "figure.dpi": 100, "lines.markersize": 15, "lines.linewidth": 3})
-sns.set_style("white")
-# sns.set_style("ticks")
-fig = sns.lineplot(x=[0, 1], y=wsls[0], marker="o", label="M1: random")
-fig = sns.lineplot(x=[0, 1], y=wsls[1], marker="o", label="M2: WSLS")
-fig = sns.lineplot(x=[0, 1], y=wsls[2], marker="o", label="M3: RW")
-fig = sns.lineplot(x=[0, 1], y=wsls[3], marker="o", label="M4: CK")
-fig = sns.lineplot(x=[0, 1], y=wsls[4], marker="o", label="M5: RW+CK")
-fig.set(ylim=(0, 1), yticks=(0, 0.5, 1), xticks=(0, 1));
-fig.set(xlabel="previous reward")
-fig.set(ylabel="p(stay)")
-fig.set(title="stay behavior")
-sns.despine(ax=fig)
+        Q[state, choice] += alpha * (reward - Q[state, choice])
+        WM[state, choice] = reward
+
+    return trials, choices, rewards
 
 # %%
-# p(correct) analysis
+# create a dataframe to hold our data
+column_names = ["reward", "choice", "stimulus", "setsize", "block", "trial"]
+df = pd.DataFrame(columns=column_names)
 
-alphas = [x / 100 for x in range(2, 102, 2)]  # can't do float ranges in native python but this works just as well
-betas = [1, 2, 5, 10, 20]
+block = -1  # to match 0-indexing and keep track of block
 
-# we could do the below more nicely in python by using the product function which creates a generator for all item combinations of two lists, i.e. product([a,b], [c,d]) = [(a,c), (a,d), (b,c), (b,d)] but for now let's keep parity with the matlab code
+for rep in range(3):
+    for ns in range(2,7):  # up to but not including 7
+        block += 1
+        stimuli, choices, rewards = RLWM(realrho, ns, realK, realbeta, realalpha)
+        data = np.array([
+            rewards, choices, stimuli,
+            np.repeat(ns, len(stimuli)),
+            np.repeat(block, len(stimuli)),
+            np.arange(len(stimuli))
+        ])
+        # such horrible naming here haha
+        df2 = pd.DataFrame(columns=column_names, data=data.transpose())
+        df = df.append(df2, ignore_index=True)
 
-# also; now we really see how convoluted things get when we refuse to use numpy, as here we have to preemptively fill nested python lists in order to "copy" the matlab code
-correct = [ [ [None for x in range(1000)] for y in range(len(betas)) ] for z in range(len(alphas)) ]
-correctEarly = [ [ [None for x in range(1000)] for y in range(len(betas)) ] for z in range(len(alphas)) ]
-correctLate = [ [ [None for x in range(1000)] for y in range(len(betas)) ] for z in range(len(alphas)) ]
-
-# so, it's common to use i and j for counters, but we've again this "interpreting code vs reading". especially for the correct/early/late below, it makes sense to do it that way in matlab as you can easily create and manipulate 3 dimensional matrices but even then, i'd argue it's confusing to work with. you'll have to remember what each dimension represents, as there are no names for them.
-
-for n in range(1000):
-    print(n)
-
-    for i in range(len(alphas)):
-        for j in range(len(betas)):
-            a, r = simulate_M3RescorlaWagner_v1(T, mu, alphas[i], betas[j])
-            # matlab has a really sneaky syntax to get the index of the max value, nice when you know but not necessarily the easiest to get if you're just reading the code
-            # numpy has argmax to get the index, which would be the easiest solution but comprehensions can be used in creative ways to get the same result (full disclosure i found it here https://stackoverflow.com/a/13989707 and i love it)
-            _, imax = max((v, i) for i, v in enumerate(mu))
-            # we create temporary lists to avoid creating them twice
-            corrects = [x == imax for x in a]
-            correct[i][j][n] = sum(corrects) / len(corrects)
-            corrects = [x == imax for x in a[:10]]
-            correctEarly[i][j][n] = sum(corrects) / len(corrects)
-            corrects = [x == imax for x in a[-10:]]
-            correctLate[i][j][n] = sum(corrects) / len(corrects)
-
-# the order of the for loops matter here in order to be able to plot them below
-E = [sum(correctEarly[i][j]) / 1000 for j in range(len(betas)) for i in range(len(alphas))]
-L = [sum(correctLate[i][j]) / 1000 for j in range(len(betas)) for i in range(len(alphas))]
 
 # %%
-# early trials plot
-sns.set_style("ticks")
-fig2 = sns.lineplot(x=alphas, y=E[0:50], label="beta=1")
-fig2 = sns.lineplot(x=alphas, y=E[50:100], label="beta=2")
-fig2 = sns.lineplot(x=alphas, y=E[100:150], label="beta=5")
-fig2 = sns.lineplot(x=alphas, y=E[150:200], label="beta=10")
-fig2 = sns.lineplot(x=alphas, y=E[200:250], label="beta=20")
-fig2.set(ylim=(0.5,1), xticks=(0, 0.5, 1))
-fig2.set(xlabel="learning rate alpha")
-fig2.set(ylabel="p(correct)")
-fig2.set(title="early trials")
-sns.despine()
-# %%
-# late trials
-sns.set_style("ticks")
-fig3 = sns.lineplot(x=alphas, y=L[0:50], label="beta=1")
-fig3 = sns.lineplot(x=alphas, y=L[50:100], label="beta=2")
-fig3 = sns.lineplot(x=alphas, y=L[100:150], label="beta=5")
-fig3 = sns.lineplot(x=alphas, y=L[150:200], label="beta=10")
-fig3 = sns.lineplot(x=alphas, y=L[200:250], label="beta=20")
-fig3.set(ylim=(0.5,1), xticks=(0, 0.5, 1))
-fig3.set(xlabel="learning rate alpha")
-fig3.set(ylabel="p(correct)")
-fig3.set(title="late trials")
-sns.despine()
+df
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+np.repeat(4, 5)
+df['reward'] = [1,2,3,5]
+
+df
+
+bla = pd.DataFrame(columns=column_names, data=[[1,2,3,4,5,6]])
+
+bla
+
+reward = [1,1,1,1]
+choice = [2,2,2,2]
+stimulus = [3,3,3,3]
+setsize=[4,4,4,4]
+block=[5,5,5,5]
+trial=[6,6,6,6]
+
+hey = np.array([reward, choice, stimulus, setsize, block, trial])
+
+bla2 = pd.DataFrame(columns=column_names, data=hey.transpose())
+
+df.append(bla2)
+df
+# then we can experiment with multiindex pandas to keep track of all likelihoods perhaps? good practice
