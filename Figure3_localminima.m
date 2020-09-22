@@ -143,7 +143,7 @@ ps{3}=rhos;na{3}='rho';
 ps{4}=Ks;na{4}='K';
 
 figure
-for i=1%:4
+for i=1:4
     out=setdiff(1:4,i);
     llh1=squeeze(max(max(max(llh,[],out(3)),[],out(2)),[],out(1)));
     [v,w]=max(llh1);
