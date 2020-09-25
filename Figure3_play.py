@@ -210,6 +210,10 @@ def likelihood_RLWM(rho, K, beta, alpha, blockdata):
 
 # %%
 
+"""
+    
+"""
+
 alphas = np.arange(0.05, 1.05, 0.05)  # i have to say matlab syntax is nicer here as it includes the upper number so you don't have to make it look this weird
 betas = np.append([1], np.arange(5, 55, 5))
 rhos = np.arange(0, 1.05, 0.05)
