@@ -5,6 +5,10 @@
 %%%%% computational modeling of behavioral data"
 
 
+% this file has predefined matrices that are plotted. there are no
+% simulations or fitting of models in this file
+
+
 clear
 
 

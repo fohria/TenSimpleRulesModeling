@@ -23,5 +23,8 @@ def lik_M3RescorlaWagner_v1(parameters, a, r):
         delta = r[trial] - Q[a[trial]]  # aka prediction error
         Q[a[trial]] = Q[a[trial]] + alpha * delta;
 
+        # clip Q to avoid under/overflow
+        Q = np.clip(Q, 1e-50, 1e50)
+
     # compute negative log-likelihood
     return -np.sum(np.log(choice_probabilities));

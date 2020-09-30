@@ -8,9 +8,8 @@
 % https://uk.mathworks.com/matlabcentral/answers/491764-unrecognized-function-or-variable-getipoptions
 
 % furthermore, this file outputs what i believe is Box5/Figure1 B, i.e.
-% the confusion matrix with beta/softmax parameters increased by 1.
-% in order to get Box5/Figure1 A, we have to remove +1 on beta parameters
-% in models 3-5 below
+% the confusion matrix with beta/softmax parameters increased by 1. there
+% is no easy way to see how to also output Box5/Figure1 A.
 
 clear
 
