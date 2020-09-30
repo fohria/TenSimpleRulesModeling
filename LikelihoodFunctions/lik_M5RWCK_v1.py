@@ -30,10 +30,6 @@ def lik_M5RWCK_v1(parameters, actions, rewards):
         CK = (1 - alpha_c) * CK
         CK[actions[trial]] += alpha_c * 1
 
-        # clip Q and CK to avoid under/overflow
-        # Q = np.clip(Q, 1e-50, 1e50)
-        # CK = np.clip(CK, 1e-50, 1e50)
-
     # compute loglikelihood and return negative log-likelihood
     loglikelihood = np.sum(np.log(choice_probabilities))
     return -loglikelihood
