@@ -1,24 +1,26 @@
 import numpy as np
+from numba import njit
 
+
+@njit
 def lik_M2WSLS_v1(parameters, actions, rewards):
 
     epsilon = parameters[0]
 
-    # last reward/action (initialize as None)
-    last_reward = None
-    last_action = None
+    # last reward/action (initialize as -1)
+    last_reward = np.int(-1)
+    last_action = np.int(-1)
 
     trialcount = len(actions)
     choice_probabilities = np.zeros(trialcount)
 
-    # loop over all trials
     for trial in range(trialcount):
 
         # compute choice probabilities
-        if last_reward is None:
+        if last_reward == -1:
 
             # choose randomly on first trial
-            p = [0.5, 0.5]
+            p = np.array([0.5, 0.5])
 
         else:
 

@@ -1,12 +1,14 @@
 import numpy as np
-import warnings
+from numba import njit
 
+
+@njit
 def lik_M4CK_v1(parameters, actions, rewards):
 
     alpha_c = parameters[0]
     beta_c = parameters[1]
 
-    CK = np.array([0, 0], dtype='float128')
+    CK = np.array([0.0, 0.0])
 
     trialcount = len(actions)
     choice_probabilities = np.zeros(trialcount)

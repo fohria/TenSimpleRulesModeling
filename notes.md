@@ -2,6 +2,10 @@
 ## TODOs
 - can probably integrate figure3 and figure3b into one notebook later
 
+## issues
+- OMP Error 15 about llvl and MKL. it may be a macos specific issue: https://stackoverflow.com/a/58869103
+
+
 ## describe the problem/bandit setup
 More specifically, we consider the case in which a participant makes a series of T choices between K slot machines, or ‘one-armed bandits’, to try to maximize their earnings. If played on trial t, each slot machine, k, pays out a reward, rt, which is one with reward probability, μkt, and otherwise 0. The reward probabilities are different for each slot machine and are initially unknown to the subject. In the simplest version of the task, the reward probabilities are fixed over time.
 

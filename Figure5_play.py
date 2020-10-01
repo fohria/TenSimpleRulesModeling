@@ -7,36 +7,91 @@
     TODO:
     - [DONE] change all simulation functions to return numpy arrays
     - [DONE] change all simulation functions to compile with numba
-    - change all likelihood functions to compile with numba
+    - [DONE] change all likelihood functions to compile with numba
+    - add fitsuccess check to all fitting functions
     - benchmark change in creating the confusion matrix!
 """
 
 # %%
-# updating simulation functions to numba
-exp_trialcount = 1000
-bandit = np.array([0.2, 0.8])
-bias = np.random.uniform(0, 1)
-actions, rewards = simulate_M1random_v1(exp_trialcount, bandit, bias)
-epsilon = np.random.uniform(0, 1)
-actions, rewards = simulate_M2WSLS_v1(exp_trialcount, bandit, epsilon)
-alpha = np.random.uniform(0, 1)
-beta_increase = 1
-beta = beta_increase + np.random.exponential(1)
-actions, rewards = simulate_M3RescorlaWagner_v1(
-    exp_trialcount, bandit, alpha, beta
-)  # hah, wonder what pep8 says about this
-alpha_c = np.random.uniform(0, 1)
-beta_c = beta_increase + np.random.exponential(1)
-actions, rewards = simulate_M4ChoiceKernel_v1(
-    exp_trialcount, bandit, alpha_c, beta_c)
-alpha = np.random.uniform(0, 1)
-beta = beta_increase + np.random.exponential(1)
-alpha_c = np.random.uniform(0, 1)
-beta_c = beta_increase + np.random.exponential(1)
-actions, rewards = simulate_M5RWCK_v1(
-    exp_trialcount, bandit, alpha, beta, alpha_c, beta_c)
 
+# testing numba likelihood methods
 
+from LikelihoodFunctions.lik_M1random_v1 import lik_M1random_v1
+
+start_guess = [np.random.uniform(0, 1)]
+bounds = [(0.01, 0.99)]
+
+fit_success = False
+max_iterations = 10
+while fit_success is False and max_iterations != 0:
+    fitresult = minimize(lik_M1random_v1,
+                         start_guess,
+                         args=(actions, rewards),
+                         bounds=bounds)
+    fit_success = fitresult.success
+    max_iterations -= 1
+
+from LikelihoodFunctions.lik_M2WSLS_v1 import lik_M2WSLS_v1
+
+start_guess = [np.random.uniform(0, 1)]
+bounds = [(0.01, 0.99)]
+
+fit_success = False
+max_iterations = 10
+while fit_success is False and max_iterations != 0:
+    fitresult = minimize(lik_M2WSLS_v1,
+                         start_guess,
+                         args=(actions, rewards),
+                         bounds=bounds)
+    fit_success = fitresult.success
+    max_iterations -= 1
+
+from LikelihoodFunctions.lik_M3RescorlaWagner_v1 import lik_M3RescorlaWagner_v1
+
+start_guess = [np.random.uniform(0, 1), np.random.exponential(1)]
+bounds = [(1e-10, 1 - 1e-10), (1e-10, 20)]
+
+fit_success = False
+max_iterations = 10
+while fit_success is False and max_iterations != 0:
+    fitresult = minimize(lik_M3RescorlaWagner_v1,
+                         start_guess,
+                         args=(actions, rewards),
+                         bounds=bounds)
+    fit_success = fitresult.success
+    max_iterations -= 1
+
+from LikelihoodFunctions.lik_M4CK_v1 import lik_M4CK_v1
+
+start_guess = [np.random.uniform(0, 1), np.random.exponential(1)]
+bounds = [(1e-10, 1 - 1e-10), (1e-10, 20)]
+
+fit_success = False
+max_iterations = 10
+while fit_success is False and max_iterations != 0:
+    fitresult = minimize(lik_M4CK_v1,
+                         start_guess,
+                         args=(actions, rewards),
+                         bounds=bounds)
+    fit_success = fitresult.success
+    max_iterations -= 1
+
+from LikelihoodFunctions.lik_M5RWCK_v1 import lik_M5RWCK_v1
+
+start_guess = [np.random.uniform(0, 1), np.random.exponential(1),
+               np.random.uniform(0, 1), np.random.exponential(1)]
+bounds = [(1e-10, 1 - 1e-10), (1e-10, 20),
+          (1e-10, 1 - 1e-10), (1e-10, 20)]
+
+fit_success = False
+max_iterations = 10
+while fit_success is False and max_iterations != 0:
+    fitresult = minimize(lik_M5RWCK_v1,
+                         start_guess,
+                         args=(actions, rewards),
+                         bounds=bounds)
+    fit_success = fitresult.success
+    max_iterations -= 1
 
 # %%
 
@@ -129,6 +184,33 @@ sns.heatmap(confusion_matrix / simfit_runcount, annot=True)
 
 
 # :::::::::::::: NOTES BELOW HERE ::: (yes, not very tidy :)
+
+# %%
+# updating simulation functions to numba
+exp_trialcount = 1000
+bandit = np.array([0.2, 0.8])
+bias = np.random.uniform(0, 1)
+actions, rewards = simulate_M1random_v1(exp_trialcount, bandit, bias)
+epsilon = np.random.uniform(0, 1)
+actions, rewards = simulate_M2WSLS_v1(exp_trialcount, bandit, epsilon)
+alpha = np.random.uniform(0, 1)
+beta_increase = 1
+beta = beta_increase + np.random.exponential(1)
+actions, rewards = simulate_M3RescorlaWagner_v1(
+    exp_trialcount, bandit, alpha, beta
+)  # hah, wonder what pep8 says about this
+alpha_c = np.random.uniform(0, 1)
+beta_c = beta_increase + np.random.exponential(1)
+actions, rewards = simulate_M4ChoiceKernel_v1(
+    exp_trialcount, bandit, alpha_c, beta_c)
+alpha = np.random.uniform(0, 1)
+beta = beta_increase + np.random.exponential(1)
+alpha_c = np.random.uniform(0, 1)
+beta_c = beta_increase + np.random.exponential(1)
+actions, rewards = simulate_M5RWCK_v1(
+    exp_trialcount, bandit, alpha, beta, alpha_c, beta_c)
+
+# %%
 
 # TEST NUMBA WEEE
 

@@ -1,5 +1,8 @@
 import numpy as np
+from numba import njit
 
+
+@njit
 def lik_M5RWCK_v1(parameters, actions, rewards):
 
     alpha = parameters[0]
@@ -7,13 +10,12 @@ def lik_M5RWCK_v1(parameters, actions, rewards):
     alpha_c = parameters[2]
     beta_c = parameters[3]
 
-    Q = np.array([0.5, 0.5], dtype='float128')
-    CK = np.array([0, 0], dtype='float128')
+    Q = np.array([0.5, 0.5])
+    CK = np.array([0.0, 0.0])
 
     trialcount = len(actions)
     choice_probabilities = np.zeros(trialcount)
 
-    # for trial in range(trialcount):
     for trial in range(trialcount):
 
         # compute choice probabilities
