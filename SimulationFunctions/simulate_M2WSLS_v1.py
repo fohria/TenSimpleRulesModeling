@@ -1,23 +1,26 @@
-from numpy.random import random
+import numpy as np
+from numba import njit, int32
 from .choose import choose
 
+
+@njit
 def simulate_M2WSLS_v1(T, mu, epsilon):
 
-    # last reward/action initialized to None
-    rLast = None
-    aLast = None
+    # last reward/action initialized to -1 so numba knows type
+    rLast = np.int(-1)
+    aLast = np.int(-1)
 
     # initialize the action and reward lists
-    a = []
-    r = []
+    a = np.zeros(T, dtype=int32)
+    r = np.zeros(T, dtype=int32)
 
     for t in range(T):
 
         # compute choice probabilities
-        if rLast is None:
+        if rLast == -1:
 
             # choose randomly on first trial
-            p = [0.5, 0.5]
+            p = np.array([0.5, 0.5])
 
         else:
 
@@ -25,21 +28,20 @@ def simulate_M2WSLS_v1(T, mu, epsilon):
             if rLast == 1:
 
                 # winstay (with probability 1-epsilon)
-                # again we've to use list comprehensions when we don't use numpy or pandas https://stackoverflow.com/questions/35166633/how-do-i-multiply-each-element-in-a-list-by-a-number
-                p = [epsilon / 2 * x for x in [1, 1]]
+                p = (epsilon / 2) * np.array([1, 1])
                 p[aLast] = 1 - epsilon / 2
 
             else:
 
                 # lose shift (probability 1-epsilon)
-                p = [(1 - epsilon / 2) * x for x in [1, 1]]
+                p = (1 - epsilon / 2) * np.array([1, 1])
                 p[aLast] = epsilon / 2
 
         # make choice according to choice probabilities
-        a.append(choose(p))
+        a[t] = choose(np.array([0, 1]), p)
 
         # generate reward based on choice
-        r.append(random() < mu[a[t]])
+        r[t] = np.random.rand() < mu[a[t]]
 
         # set last action and reward to current before next loop iteration
         aLast = a[t]

@@ -1,27 +1,28 @@
-from numpy.random import random
-from numpy import exp
+import numpy as np
+from numba import njit, int32
 from .choose import choose
 
+
+@njit
 def simulate_M3RescorlaWagner_v1(T, mu, alpha, beta):
 
-    Q = [0.5, 0.5]  # init with equal values for each action
-    a = []
-    r = []
+    Q = np.array([0.5, 0.5])  # init with equal values for each action
+    a = np.zeros(T, dtype=int32)
+    r = np.zeros(T, dtype=int32)
 
     for t in range(T):
 
         # compute choice probabilities (softmax)
-        denominator = sum([exp(beta * q) for q in Q])
-        p = [exp(beta * q) / denominator for q in Q]
+        p = np.exp(beta * Q) / np.sum(np.exp(beta * Q))
 
         # make choice based on choice probabilities
-        a.append(choose(p))
+        a[t] = choose(np.array([0, 1]), p)
 
         # generate reward based on choice
-        r.append(random() < mu[a[t]])
+        r[t] = np.random.rand() < mu[a[t]]
 
         # update action values
-        delta = r[t] - Q[a[t]]  # in paper this is called prediction error, so it's a bit confusing to call it delta here
-        Q[a[t]] = Q[a[t]] + alpha * delta
+        delta = r[t] - Q[a[t]]  # in paper this is called prediction error
+        Q[a[t]] += alpha * delta
 
     return a, r
