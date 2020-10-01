@@ -8,7 +8,7 @@
     - [DONE] change all simulation functions to return numpy arrays
     - [DONE] change all simulation functions to compile with numba
     - [DONE] change all likelihood functions to compile with numba
-    - add fitsuccess check to all fitting functions
+    - [DONE] add fitsuccess check to all fitting functions
     - benchmark change in creating the confusion matrix!
 """
 
@@ -106,6 +106,7 @@ while fit_success is False and max_iterations != 0:
 
 # lets start with model3 since we have a likelihood function for that already, so we do row 3 of confusion matrix A in fig/box5. ah wait, we need to fit all models, haha. okay, just start doing likelihood functions for each.
 import numpy as np
+import seaborn as sns
 from SimulationFunctions.simulate_M1random_v1 import simulate_M1random_v1
 from SimulationFunctions.simulate_M2WSLS_v1 import simulate_M2WSLS_v1
 from SimulationFunctions.simulate_M3RescorlaWagner_v1 import simulate_M3RescorlaWagner_v1
@@ -122,12 +123,12 @@ from FittingFunctions.fit_all_v1 import fit_all_v1
 exp_trialcount = 1000
 bandit = np.array([0.2, 0.8])
 beta_increase = 0  # set to 0 for figure A, 1 for figure B
-simfit_runcount = 10  # how many times to simulate each model and fit
+simfit_runcount = 100  # how many times to simulate each model and fit
 
 # %%
 
 # with fit_all_v1 function done, we can easily just do entire confusion matrix
-
+# def construct_confusion():
 confusion_matrix = np.zeros([5, 5])
 # confusion_matrix = np.zeros(5)
 
@@ -177,6 +178,7 @@ for simfitrun in range(simfit_runcount):
     _, _, best = fit_all_v1(actions, rewards)
     confusion_matrix[4, :] += best
 
+# %timeit construct_confusion()
 
 sns.heatmap(confusion_matrix / simfit_runcount, annot=True)
 
