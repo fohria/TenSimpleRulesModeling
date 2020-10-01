@@ -9,7 +9,7 @@
     - [DONE] change all simulation functions to compile with numba
     - [DONE] change all likelihood functions to compile with numba
     - [DONE] add fitsuccess check to all fitting functions
-    - benchmark change in creating the confusion matrix!
+    - [DONE] benchmark change in creating the confusion matrix! (see benchmark.md)
 """
 
 # %%
