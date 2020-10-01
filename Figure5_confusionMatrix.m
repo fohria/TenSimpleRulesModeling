@@ -12,6 +12,13 @@
 % in order to get Box5/Figure1 A, we have to remove +1 on beta parameters
 % in models 3-5 below
 
+% additionally; there's a fairly large variety in the output confusion
+% matrices. authors mention the variety between Figures A and B, but not
+% the variety within a figure. so one should perhaps run with more than 100
+% counts as they have here, or at least mention how many runs they did or
+% that they ran this file many times to get the figure in the paper. or use
+% a seed i guess would be another option.
+
 clear
 
 addpath('./SimulationFunctions')

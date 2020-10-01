@@ -1,0 +1,8 @@
+name: tensimplerules
+dependencies:
+  - ipython
+  - ipykernel
+  - numpy
+  - pandas
+  - scipy
+  - seaborn
