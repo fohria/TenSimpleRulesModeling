@@ -2,6 +2,7 @@ function [Xfit, LL, BIC] = fit_M4CK_v1(a, r)
 
 obFunc = @(x) lik_M4CK_v1(a, r, x(1), x(2));
 
+% note the 0.5+ for alpha_c!
 X0 = [rand 0.5+exprnd(1)];
 LB = [0 0];
 UB = [1 inf];
