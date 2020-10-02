@@ -18,17 +18,20 @@ def fit_M5RWCK_v1(actions, rewards):
     # parameter order: alpha, beta, alphac, betac
     while fit_success is False and max_iterations != 0:
         start_guess = [np.random.uniform(0, 1), np.random.exponential(1),
-                       np.random.uniform(0, 1), np.random.exponential(1)]
+                       np.random.uniform(0, 1), np.random.exponential(1)+0.5]
         fitresult = minimize(
             lik_M5RWCK_v1, start_guess, args=(actions, rewards), bounds=bounds)
         fit_success = fitresult.success
         max_iterations -= 1
 
     parameter_estimations = fitresult.x
-    loglikelihood = -fitresult.fun
+    if fit_success is True:
+        loglikelihood = -fitresult.fun
+    else:
+        raise ValueError
 
     trial_count = len(actions)
-    BIC = -2 * loglikelihood + 1 * np.log(trial_count)
+    BIC = -2 * loglikelihood + len(start_guess) * np.log(trial_count)
 
     return parameter_estimations, loglikelihood, BIC
 

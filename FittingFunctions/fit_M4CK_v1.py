@@ -15,7 +15,7 @@ def fit_M4CK_v1(actions, rewards):
         # alphac ~ uniform(0,1), betac ~ exponential(1)
         # TODO: i guess ideally these guesses should be declared as optional
         # parameters to this function to allow more flexibility
-        start_guess = [np.random.uniform(0, 1), np.random.exponential(1)]
+        start_guess = [np.random.uniform(0, 1), np.random.exponential(1)+0.5]
         fitresult = minimize(
             lik_M4CK_v1, start_guess, args=(actions, rewards), bounds=bounds)
         fit_success = fitresult.success
@@ -25,6 +25,6 @@ def fit_M4CK_v1(actions, rewards):
     loglikelihood = -fitresult.fun
 
     trial_count = len(actions)
-    BIC = -2 * loglikelihood + 1 * np.log(trial_count)
+    BIC = -2 * loglikelihood + len(start_guess) * np.log(trial_count)
 
     return parameter_estimations, loglikelihood, BIC

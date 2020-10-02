@@ -25,6 +25,6 @@ def fit_M3RescorlaWagner_v1(actions, rewards):
     loglikelihood = -fitresult.fun
 
     trial_count = len(actions)
-    BIC = -2 * loglikelihood + 1 * np.log(trial_count)
+    BIC = -2 * loglikelihood + len(start_guess) * np.log(trial_count)
 
     return parameter_estimations, loglikelihood, BIC
