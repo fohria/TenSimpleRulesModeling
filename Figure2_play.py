@@ -30,7 +30,8 @@ from SimulationFunctions.simulate_M4ChoiceKernel_v1 import simulate_M4ChoiceKern
 from SimulationFunctions.simulate_M5RWCK_v1 import simulate_M5RWCK_v1
 from AnalysisFunctions.analysis_WSLS_v1 import analysis_WSLS_v1
 
-from numpy import mean
+# from numpy import mean
+import numpy as np
 import seaborn as sns
 
 """
@@ -56,7 +57,7 @@ hmm it's funny they say above K=2 but they just use that implicitly everywhere, 
 # %%
 
 T = 100  # number of trials
-mu = [0.2, 0.8]  # mean reward of bandits
+mu = np.array([0.2, 0.8])  # mean reward of bandits
 """unfortunate phrasing, as it can be confusing. mu are, according to the main paper text, the reward probabilities not the mean rewards. although over enough trials, since reward is between 0-1 the mean reward will approach the limit of being same as probabilities)"""
 
 # number of repetitions for simulations
@@ -149,12 +150,14 @@ wsls = []
 for i in range(1, len(sim)):
     sim[i]["wsls"] = []  # again, python has to predeclare variables
 
+    # print(sim[i]["a"])
+
     for n in range(Nrep):
         sim[i]["wsls"].append(analysis_WSLS_v1(sim[i]["a"][n], sim[i]["r"][n]))
 
     ls = [sim[i]["wsls"][x][0] for x in range(len(sim[i]["wsls"]))]
     ws = [sim[i]["wsls"][x][1] for x in range(len(sim[i]["wsls"]))]
-    wsls.append([mean(ls), mean(ws)])  # again, confusing variable name and positions, i believe it's done for easier plotting 0-1 below but imho that translation should be done when you plot not here. or just name it lsws
+    wsls.append([np.mean(ls), np.mean(ws)])  # again, confusing variable name and positions, i believe it's done for easier plotting 0-1 below but imho that translation should be done when you plot not here. or just name it lsws
 
 #%%
 

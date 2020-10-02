@@ -1,15 +1,15 @@
-from numpy import mean
+import numpy as np
 
 def analysis_WSLS_v1(a, r):
 
-    aLast = [None] + a[:-1]
-    # aLast == a  # without pandas library we cant do this
-    stay = [aLast[i] == a[i] for i in range(len(a))]  # comprehensions to the rescue
-    rLast = [None] + r[:-1]
+    aLast = np.append(-1, a[:-1])
+    stay = aLast == a
+    rLast = np.append(-1, r[:-1])
 
     # again we are not using pandas so rely on comprehensions
-    winStay = mean([stay[i] for i in range(len(rLast)) if rLast[i] == 1])
-    loseStay = mean([stay[i] for i in range(len(rLast)) if rLast[i] == 0])
+    # TODO: numpyify it
+    winStay = np.mean([stay[i] for i in range(len(rLast)) if rLast[i] == 1])
+    loseStay = np.mean([stay[i] for i in range(len(rLast)) if rLast[i] == 0])
 
     return loseStay, winStay  # confusing to call function wsls and return lsws
 
