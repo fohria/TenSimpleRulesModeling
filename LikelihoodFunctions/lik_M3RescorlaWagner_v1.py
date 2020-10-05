@@ -15,14 +15,14 @@ def lik_M3RescorlaWagner_v1(parameters, actions, rewards):
     for trial in range(trial_count):
 
         # compute choice probabilities
-        p = np.exp(beta * Q) / np.sum(np.exp(beta * Q));
+        p = np.exp(beta * Q) / np.sum(np.exp(beta * Q))
 
         # add choice probability for actual choice
-        choice_probabilities[trial] = p[actions[trial]];
+        choice_probabilities[trial] = p[actions[trial]]
 
         # update values
         delta = rewards[trial] - Q[actions[trial]]  # aka prediction error
-        Q[actions[trial]] += alpha * delta;
+        Q[actions[trial]] += alpha * delta
 
     # compute negative log-likelihood
     loglikelihood = np.sum(np.log(choice_probabilities))
