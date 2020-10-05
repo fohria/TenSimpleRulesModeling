@@ -28,7 +28,7 @@ addpath('./FittingFunctions')
 addpath('./LikelihoodFunctions')
 
 %%
-
+tic
 CM = zeros(5);
 
 T = 1000;
@@ -90,6 +90,7 @@ for count = 1:100
     CM(5,:) = CM(5,:) + BEST;
 
 end
+toc
 %%
 figure(1);
 title('')

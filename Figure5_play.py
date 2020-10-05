@@ -39,7 +39,7 @@ from FittingFunctions.fit_all_v1 import fit_all_v1
 
 exp_trialcount = 1000
 bandit = np.array([0.2, 0.8])
-beta_increase = 1  # set to 0 for figure A, 1 for figure B
+beta_increase = 0  # set to 0 for figure A, 1 for figure B
 simfit_runcount = 100  # how many times to simulate each model and fit
 
 # %%
@@ -99,10 +99,24 @@ for simfitrun in range(simfit_runcount):
 
 #%%
 
-sns.heatmap(confusion_matrix / simfit_runcount, annot=True)
+fig = sns.heatmap(confusion_matrix / simfit_runcount, annot=True)
+fig.set(xlabel="fit model", ylabel="simulated model")
 
 # %%
 
+# inverse confusion matrix
+# "The inversion matrix provides easier interpretation of fitting results when the true model is unknown. For example, the confusion matrix indicates [FigureA, betaincrease = 0] that M1 is always perfectly recovered, while M5 is only recovered 30% of the time. By contrast, the inversion matrix shows that if M1 is the best fitting model, our confidence that it generated the data is low (54%), but if M5 is the best fitting model, our confidence that it did generate the data is high (97%)"
+
+inverse_confmatrix = np.zeros_like(confusion_matrix)
+for column in range(inverse_confmatrix.shape[1]):
+    inv_column = confusion_matrix[:, column] / np.sum(confusion_matrix[:, column])
+    inverse_confmatrix[:, column] = inv_column
+
+fig = sns.heatmap(inverse_confmatrix, annot=True)
+fig.set(xlabel="fit model", ylabel="simulated model")
+
+
+# %%
 
 # :::::::::::::: NOTES BELOW HERE ::: (yes, not very tidy :)
 #%%
