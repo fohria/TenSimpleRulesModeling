@@ -41,7 +41,7 @@ for i=1:2% for each parameter
     plot(xlim,xlim,'k--')
     l = lsline;
     set(l, 'linewidth', 3)
-    
+
     xlabel(['simulated ',names{i}])
     ylabel(['fit ',names{i}])
 end
@@ -55,10 +55,10 @@ for i = 1:3
     l = lsline;
     set(l, 'linewidth', 3)
     hold on
-    
+
     xlabel(['simulated ',names{i}])
     ylabel(['fit ',names{i}])
-    
+
 end
 set(ax([1 4]), 'xtick', [0:0.2:0.6], 'ylim', [0 1])
 set(ax(3), 'visible', 'off')
@@ -91,7 +91,9 @@ function D=simulate(alpha,beta,bias)
 % simulate RL
 k=0;
 
-for s=1:20 
+
+% so here they simulate with 20 blocks instead of the 10 mentioned in paper?
+for s=1:20
     Q=[.5 .5];
     % define the correct action for this block
     if mod(s,2) == 1
@@ -106,6 +108,7 @@ for s=1:20
     for t=1:50
         k=k+1;
         % bias in favor of choice 1 in the softmax
+        % looks like p_right here while it's p_left in paper
         p2=1/(1+exp(beta*(bias+Q(1)-Q(2))));
         % select an action, decide if correct
         a=1+(rand<p2);
@@ -155,16 +158,18 @@ alpha = p(1);
 beta=10*p(2);
 bias=0;
 k=0;
+% this model uses 20 blocks?
 for s=1:20
     Q=[.5 .5];
     llh=0;
     for t=1:50
         k=k+1;
+        % looks like p^right here while it's p_left in paper
         p2=1/(1+exp(beta*(bias+Q(1)-Q(2))));
         pr=[1-p2 p2];
         a=choice(k);
         r=reward(k);
-        
+
         Q(a)=Q(a)+alpha*(r-Q(a));
         llh=llh+log(pr(a));
     end
@@ -181,15 +186,17 @@ bias=p(3);
 
 k=0;
 llh=0;
+% only 10 blocks fit for this model?
 for s=1:10
     Q=[.5 .5];
     for t=1:50
         k=k+1;
+        % looks like p^right here while it's p_left in paper
         p2=1/(1+exp(beta*(bias +Q(1)-Q(2))));
         pr=[1-p2 p2];
         a=choice(k);
         r=reward(k);
-        
+
         Q(a)=Q(a)+alpha*(r-Q(a));
         llh=llh+log(pr(a));
     end
