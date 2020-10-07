@@ -14,6 +14,14 @@
 # in other words, they're using LL both in the formula and the text for the loglikelihood when actually it's log(L), so, their formula SHOULD say:
 # BIC = -2 * LL + km * log(T)
 
+### unused files
+
+all M6 files (sim/fit/lik) are never used
+SimulationFunctions/simulate_validationModel_v1.m
+
+figure6 and figure7 files are self contained and dont use the sim/fit/lik folders at all. especially fig7 has very confusing one letter variable names that don't always correlate with names in the paper.
+
+i suspect someone started making everything neat and then got stressed and/or the two authors divided code for figures and each did it their way.
 
 ## describe the problem/bandit setup
 More specifically, we consider the case in which a participant makes a series of T choices between K slot machines, or ‘one-armed bandits’, to try to maximize their earnings. If played on trial t, each slot machine, k, pays out a reward, rt, which is one with reward probability, μkt, and otherwise 0. The reward probabilities are different for each slot machine and are initially unknown to the subject. In the simplest version of the task, the reward probabilities are fixed over time.

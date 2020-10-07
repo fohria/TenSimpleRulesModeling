@@ -113,9 +113,12 @@ saveFigurePdf(gcf, '~/Figures/Figure7')
 %%
 end
 
+% not sure why it's called flaw, blind = flaw?
 function [D,P]=simulateflaw(alphaP,beta)
 alphaN=0;
 k=0;
+% s here means block, not stimuli as would be expected from paper
+% stimuli is instead o for observation
 for s=1:10
     Q=ones(3,3)/3;
     for t=1:45
