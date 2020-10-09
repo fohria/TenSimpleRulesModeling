@@ -128,45 +128,197 @@ def simulate_sights(stimuli):
 
 
 # %%
+# :::: MAIN LOOP FIG A::::
 # okay so next here is to be able to do many simulatinos for blind and then plot average learning curve below
 
 sim_count = 100
 
+# fig a data
 sim_blinds = []
 sim_sights = []
 # np.tile is not supported by numba and is the same every loop anyway
 stimuli = np.tile(np.array([0, 1, 2], dtype=int), int(45 / 3))
+# fig b data
+like_blinds = []
+like_sights = []
 
 for simulation in range(sim_count):
 
     states, actions, rewards = simulate_blind(stimuli)
+    sim_blinds.append(summarize_per_stimuli(rewards))
 
-    stim1 = [rewards[np.arange(block * 45, (block + 1) * 45, 3)] for block in range(10)]
-    stim2 = [rewards[np.arange(block * 45 + 1, (block + 1) * 45, 3)] for block in range(10)]
-    stim3 = [rewards[np.arange(block * 45 + 2, (block + 1) * 45, 3)] for block in range(10)]
-
-    stim1 = np.array(stim1)
-    stim2 = np.array(stim2)
-    stim3 = np.array(stim3)
-
-    sim_blinds.append(np.mean((stim1 + stim2 + stim3) / 3, axis=0))
+    # stim1 = [rewards[np.arange(block * 45, (block + 1) * 45, 3)] for block in range(10)]
+    # stim2 = [rewards[np.arange(block * 45 + 1, (block + 1) * 45, 3)] for block in range(10)]
+    # stim3 = [rewards[np.arange(block * 45 + 2, (block + 1) * 45, 3)] for block in range(10)]
+    #
+    # stim1 = np.array(stim1)
+    # stim2 = np.array(stim2)
+    # stim3 = np.array(stim3)
+    #
+    # sim_blinds.append(np.mean((stim1 + stim2 + stim3) / 3, axis=0))
 
     states, actions, rewards = simulate_sights(stimuli)
+    sim_sights.append(summarize_per_stimuli(rewards))
 
-    stim1 = np.array([rewards[np.arange(block * 45, (block + 1) * 45, 3)] for block in range(10)])
-    stim2 = np.array([rewards[np.arange(block * 45 + 1, (block + 1) * 45, 3)] for block in range(10)])
-    stim3 = np.array([rewards[np.arange(block * 45 + 2, (block + 1) * 45, 3)] for block in range(10)])
-
-    sim_sights.append(np.mean((stim1 + stim2 + stim3) / 3, axis=0))
-
+    # stim1 = np.array([rewards[np.arange(block * 45, (block + 1) * 45, 3)] for block in range(10)])
+    # stim2 = np.array([rewards[np.arange(block * 45 + 1, (block + 1) * 45, 3)] for block in range(10)])
+    # stim3 = np.array([rewards[np.arange(block * 45 + 2, (block + 1) * 45, 3)] for block in range(10)])
+    #
+    # sim_sights.append(np.mean((stim1 + stim2 + stim3) / 3, axis=0))
 
 # %%
 
+def summarize_per_stimuli(series):
+
+    stim1 = np.array([series[np.arange(block * 45, (block + 1) * 45, 3)] for block in range(10)])
+    stim2 = np.array([series[np.arange(block * 45 + 1, (block + 1) * 45, 3)] for block in range(10)])
+    stim3 = np.array([series[np.arange(block * 45 + 2, (block + 1) * 45, 3)] for block in range(10)])
+
+    return np.mean((stim1 + stim2 + stim3) / 3, axis=0)
+
+# %%
+
+# construct likelihood function and run on latest states, actions, rewards
+# then we can put it inside the loop above so likelihood is calculated for each individual simulation as well
+# TODO NEXT figure out their posterior function thingie and what is exactly plotted in figB
+# ::::::::: FIG B :::::::::::::::
+# okay fitrl stuff works now get the L = L (1:3 etcetc)
+like_blinds = []
+like_sights = []
+for bla in range(10):
+
+    states, actions, rewards = simulate_blind(stimuli)
+
+    parms, likes = fitRL(states, actions, rewards)
+    like_blinds.append(summarize_per_stimuli(likes))
+
+    # llhs1 = np.array([_likes[np.arange(block * 45, (block + 1) * 45, 3)] for block in range(10)])
+    # llhs2 = np.array([_likes[np.arange(block * 45 + 1, (block + 1) * 45, 3)] for block in range(10)])
+    # llhs3 = np.array([_likes[np.arange(block * 45 + 2, (block + 1) * 45, 3)] for block in range(10)])
+
+    # like_blinds.append(np.mean((llhs1 + llhs2 + llhs3) / 3, axis=0))
+
+    states, actions, rewards = simulate_sights(stimuli)
+
+    parms, likes = fitRL(states, actions, rewards)
+    like_sights.append(summarize_per_stimuli(likes))
+
+    # llhs1 = np.array([_likes[np.arange(block * 45, (block + 1) * 45, 3)] for block in range(10)])
+    # llhs2 = np.array([_likes[np.arange(block * 45 + 1, (block + 1) * 45, 3)] for block in range(10)])
+    # llhs3 = np.array([_likes[np.arange(block * 45 + 2, (block + 1) * 45, 3)] for block in range(10)])
+    #
+    # like_sights.append(np.mean((llhs1 + llhs2 + llhs3) / 3, axis=0))
+
+# %%
+# ::::::::::::::::::: FIG B ::::::::::::::::
+
+columns3 = ['simcount', 'trial', 'data_model', 'p_like']
+
+df = pd.DataFrame(columns=columns3)
+for simnum in range(10):
+    rows = [(simnum, x, 'blind', like_blinds[simnum][x]) for x in range(15)]
+    temp_df = pd.DataFrame(columns=columns3, data=rows)
+    df = pd.concat([df, temp_df])
+
+    rows = [(simnum, x, 'sights', like_sights[simnum][x]) for x in range(15)]
+    temp_df = pd.DataFrame(columns=columns3, data=rows)
+    df = pd.concat([df, temp_df])
+
+fig = sns.lineplot(data=df, x='trial', y='p_like', hue='data_model')
+fig.set(ylim = (0, 1))
+
+# %%
+
+@njit
+def llh_sights(parameters, states, actions, rewards):
+
+    alpha_pos = parameters[0]
+    beta = parameters[1]
+    alpha_neg = 0
+
+    trialcount = len(actions)
+    choice_probs = np.zeros(trialcount)
+
+    for trial in range(trialcount):
+
+        if trial % 45 == 0:
+            Q = np.ones((3, 3)) / 3.0
+
+        observation = states[trial]
+        Q_row = Q[observation]
+        prob_choice = np.exp(beta * Q_row) / np.sum(np.exp(beta * Q_row))
+
+        action = actions[trial]
+        choice_probs[trial] = prob_choice[action]
+
+        reward = rewards[trial]
+        delta = reward - Q[observation, action]
+        if delta > 0:
+            Q[observation, action] += alpha_pos * delta
+        elif delta < 0:
+            Q[observation, action] += alpha_neg * delta
+
+    loglikelihood = np.sum(np.log(choice_probs))
+    return -loglikelihood
+
+# %%
+from scipy.optimize import minimize
+
+def fitRL(states, actions, rewards):
+    guess = (np.random.rand(), np.random.rand() * 10)
+    best = 9999
+    best_parms = []
+    for _ in range(20):
+        result = minimize(llh_sights, (0.3, 3), args=(states, actions, rewards), bounds=[(0.01, 0.99), (0.1, 20)])
+        if result.fun < best:
+            best_parms = result.x
+
+    likes = posterior(best_parms, states, actions, rewards)
+
+    return best_parms, likes
+
+# %%
+
+def posterior(parms, states, actions, rewards):
+
+    alpha_pos = parms[0]
+    beta = parms[1]
+    alpha_neg = 0
+
+    trialcount = len(actions)
+    likehoods = np.zeros(trialcount)
+
+    for trial in range(trialcount):
+
+        if trial % 45 == 0:
+            Q = np.ones((3, 3)) / 3.0
+
+        obs = states[trial]
+        Q_row = Q[obs]
+        probs = np.exp(beta * Q_row) / np.sum(np.exp(beta * Q_row))
+        action = actions[trial]
+        reward = rewards[trial]
+        delta = reward - Q[obs, action]
+        if delta > 0:
+            Q[obs, action] += alpha_pos * delta
+        elif delta < 0:
+            Q[obs, action] += alpha_neg * delta
+
+        likehoods[trial] = probs[action]
+
+    return likehoods
+
+# %%
+
+# llh_sights([0.2, 7], states, actions, rewards)
+
+# %%
 # nicer way to plot with tidy data
+# :::::::::::::::: FIG A:::::::::::::::::
 columns2 = ['sim', 'trial', 'model', 'p_correct']
 
 df = pd.DataFrame(columns=columns2)
-for simnum in range(10):
+for simnum in range(10):  # TODO! change to simcount
     rows = [(simnum, x, 'blind', sim_blinds[simnum][x]) for x in range(15)]
     temp_df = pd.DataFrame(columns=columns2, data=rows)
     df = pd.concat([df, temp_df])
