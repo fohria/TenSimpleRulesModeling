@@ -29,6 +29,14 @@
 
 # %%
 
+# redescribing fig7 after reproducing all the graphs:
+# figa shows how we simulate two artificial participants; blind and sighted
+# figb shows how we model the two participants with the sighted/state-based model. in other words, we fit the sighted model to both blind and sighted data. interestingly, it seems the sighted model has a higher likelihood for explaining the blind data
+# however, if we use the fitted parameters found in figb and simulate using the sighted model, we find that the behaviour produced (in the form of learning curves) works with the parameters fit to sighted data, but the parameters fit to blind data produces behaviour that doesn't look like the behaviour in figa.
+# the last bit there in figc can be a bit confusing, but it basically says that if we fit sighted model to blind data, the parameters we then find, if we use those to simulate the sighted model, we get behaviour that doesn't look right.
+
+# %%
+
 # autoreload
 %load_ext autoreload
 %autoreload 2
@@ -128,6 +136,38 @@ def simulate_sights(stimuli, alpha_pos, beta):
     return states, actions, rewards
 
 # %%
+
+testa = df_a.copy()#.head(30)
+testb = df_b.copy()#.head(30)
+testc = df_c.copy()#.head(30)
+
+# df_combo = pd.DataFrame(columns=['simcount', 'trial', 'model', 'p_figa', 'p_figb', 'p_figc'])
+
+testa = testa.rename(columns={'sim': 'simcount'})
+# testa = testa.rename(columns={'p_correct': 'p_figa'})
+testa['fig'] = 'a'
+
+testb = testb.rename(columns={'data_model': 'model'})
+testb = testb.rename(columns={'p_like': 'p_correct'})
+testb['fig'] = 'b'
+
+testc = testc.rename(columns={'sim_model': 'model'})
+# testc = testc.rename(columns={'p_correct': 'p_figc'})
+testc['fig'] = 'c'
+
+# df_combo = testa.merge(testb).merge(testc)
+df_combo = testa.append(testb).append(testc)
+
+df_combo
+
+# wait okay, so what we need is a column 'fig' with a, b, c and then the p_correct value and the 'easy' way to do that is just loop through but i GUESS we might be able to pivot/groupby or something?
+
+grid = sns.FacetGrid(df_combo, col='fig', hue='model')
+grid.map(sns.lineplot, 'trial', 'p_correct')
+
+
+fig = sns.lineplot(data=df_combo, x='trial', y='p_figb', hue='model')
+fig.set(ylim=(0.2, 1));
 
 
 # %%
@@ -236,6 +276,10 @@ sns.set(rc={"figure.figsize": (3, 3), "figure.dpi": 100})
 fig = sns.lineplot(data=df_b, x='trial', y='p_like', hue='data_model')
 # fig.set(ylim = (0, 1));
 fig.set(ylim = (0.2, 1));
+
+fig = sns.lineplot(data=df_combo, x='trial', y='p_figb', hue='model')
+fig.set(ylim=(0.2, 1));
+
 
 # %%
 
