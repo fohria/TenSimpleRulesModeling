@@ -5,7 +5,8 @@
 # easy to get confused here because the colors mean different things in the 3 different plots, but in other words:
 # figA: simulations for blind and state-based, lets call them blindSims and stateSims, so this is 'pure' data like plotting behaviour of participants
 # figB: likelihood curves for *fitting state-based model* to blindSims and stateSims, so lets call this fitState, i.e. it's one model applied to the two datasets blindSims and stateSims
-# figC: learning curves for simulations using fitState and the new fitBlind, so here it's 'pure' data again but now we use the parameter values we found for the two models
+# figC: learning curves for simulations using parameters from fitState to simulate state-based, so we use the parameter values we found and simulate the _state based_
+# ~and the new fitBlind, so here it's 'pure' data again but now we use the parameter values we found for the two models~
 
 # the task as explained in the paper:
 # we have three stimuli, s1, s2, s3
@@ -38,14 +39,16 @@ from numba import njit, int32, float64
 import pandas as pd
 import seaborn as sns
 
+from scipy.optimize import minimize
+
 from SimulationFunctions.choose import choose
 
 # %%
 @njit
-def simulate_blind(stimuli):
+def simulate_blind(stimuli, alpha_pos, beta):
 
-    alpha_pos = 0.3 + 0.4 * np.random.rand()  # paper says this is set but okay
-    beta = 4 + 5 * np.random.rand()
+    # alpha_pos = 0.3 + 0.4 * np.random.rand()  # paper says this is set but okay
+    # beta = 4 + 5 * np.random.rand()
     alpha_neg = 0
 
     # stimuli = np.tile(np.array([0, 1, 2], dtype=int32), int(45 / 3))  # 45 trials, 3 stimuli
@@ -87,10 +90,10 @@ def simulate_blind(stimuli):
 
 # %%
 @njit
-def simulate_sights(stimuli):
+def simulate_sights(stimuli, alpha_pos, beta):
 
-    alpha_pos = 0.6 + 0.1 * np.random.rand()
-    beta = 2
+    # alpha_pos = 0.6 + 0.1 * np.random.rand()
+    # beta = 2
     alpha_neg = 0
 
     states = np.zeros(10 * 45, dtype=int32)
@@ -141,20 +144,46 @@ stimuli = np.tile(np.array([0, 1, 2], dtype=int), int(45 / 3))
 # fig b data
 like_blinds = []
 like_sights = []
+# fig c data
+simfit_blind = []
+simfit_sight = []
 
 for simulation in range(sim_count):
 
-    states, actions, rewards = simulate_blind(stimuli)
+    print(f"simulation {simulation}")
+
+    # blind model
+    # alpha_pos = 0.3 + 0.4 * np.random.rand()  # paper says this is set but okay
+    alpha_pos = 0.5
+    beta = 6.5
+    # beta = 4 + 5 * np.random.rand()
+    states, actions, rewards = simulate_blind(
+        stimuli, alpha_pos, beta)
     sim_blinds.append(summarize_per_stimuli(rewards))
 
     parms, likes = fitRL(states, actions, rewards)
     like_blinds.append(summarize_per_stimuli(likes))
 
-    states, actions, rewards = simulate_sights(stimuli)
+    # simulation of _sighted_ model using blind data
+    states, actions, rewards = simulate_sights(
+        stimuli, parms[0], parms[1]
+    )
+    simfit_blind.append(summarize_per_stimuli(rewards))
+
+    # state-based model
+    # alpha_pos = 0.6 + 0.1 * np.random.rand()
+    alpha_pos = 0.65
+    beta = 2
+    states, actions, rewards = simulate_sights(
+        stimuli, alpha_pos, beta)
     sim_sights.append(summarize_per_stimuli(rewards))
 
     parms, likes = fitRL(states, actions, rewards)
     like_sights.append(summarize_per_stimuli(likes))
+
+    states, actions, rewards = simulate_sights(
+        stimuli, parms[0], parms[1])
+    simfit_sight.append(summarize_per_stimuli(rewards))
 
 
 # %%
@@ -169,22 +198,44 @@ def summarize_per_stimuli(series):
 
 # %%
 
+# ::::::::::::::::::: FIG C ::::::::::::::::
+
+columns_c = ['simcount', 'trial', 'sim_model', 'p_correct']
+
+df_c = pd.DataFrame(columns=columns_c)
+for simnum in range(sim_count):
+    rows = [(simnum, x, 'blind', simfit_blind[simnum][x]) for x in range(15)]
+    temp_df = pd.DataFrame(columns=columns_c, data=rows)
+    df_c = pd.concat([df_c, temp_df])
+
+    rows = [(simnum, x, 'sights', simfit_sight[simnum][x]) for x in range(15)]
+    temp_df = pd.DataFrame(columns=columns_c, data=rows)
+    df_c = pd.concat([df_c, temp_df])
+
+sns.set(rc={"figure.figsize": (3, 3), "figure.dpi": 100})
+fig = sns.lineplot(data=df_c, x='trial', y='p_correct', hue='sim_model')
+# fig.set(ylim = (0, 1));
+fig.set(ylim = (0.2, 1));
+
+# %%
 # ::::::::::::::::::: FIG B ::::::::::::::::
 
-columns3 = ['simcount', 'trial', 'data_model', 'p_like']
+columns_b = ['simcount', 'trial', 'data_model', 'p_like']
 
-df = pd.DataFrame(columns=columns3)
-for simnum in range(10):
+df_b = pd.DataFrame(columns=columns_b)
+for simnum in range(sim_count):
     rows = [(simnum, x, 'blind', like_blinds[simnum][x]) for x in range(15)]
-    temp_df = pd.DataFrame(columns=columns3, data=rows)
-    df = pd.concat([df, temp_df])
+    temp_df = pd.DataFrame(columns=columns_b, data=rows)
+    df_b = pd.concat([df_b, temp_df])
 
     rows = [(simnum, x, 'sights', like_sights[simnum][x]) for x in range(15)]
-    temp_df = pd.DataFrame(columns=columns3, data=rows)
-    df = pd.concat([df, temp_df])
+    temp_df = pd.DataFrame(columns=columns_b, data=rows)
+    df_b = pd.concat([df_b, temp_df])
 
-fig = sns.lineplot(data=df, x='trial', y='p_like', hue='data_model')
-fig.set(ylim = (0, 1))
+sns.set(rc={"figure.figsize": (3, 3), "figure.dpi": 100})
+fig = sns.lineplot(data=df_b, x='trial', y='p_like', hue='data_model')
+# fig.set(ylim = (0, 1));
+fig.set(ylim = (0.2, 1));
 
 # %%
 
@@ -221,14 +272,15 @@ def llh_sights(parameters, states, actions, rewards):
     return -loglikelihood
 
 # %%
-from scipy.optimize import minimize
+
 
 def fitRL(states, actions, rewards):
-    guess = (np.random.rand(), np.random.rand() * 10)
+
     best = 9999
     best_parms = []
     for _ in range(20):
-        result = minimize(llh_sights, (0.3, 3), args=(states, actions, rewards), bounds=[(0.01, 0.99), (0.1, 20)])
+        guess = (np.random.rand(), np.random.rand() * 10)
+        result = minimize(llh_sights, guess, args=(states, actions, rewards), bounds=[(0.01, 0.99), (0.1, 20)])
         if result.fun < best:
             best_parms = result.x
 
@@ -269,25 +321,23 @@ def posterior(parms, states, actions, rewards):
 
 # %%
 
-# llh_sights([0.2, 7], states, actions, rewards)
-
-# %%
 # nicer way to plot with tidy data
 # :::::::::::::::: FIG A:::::::::::::::::
-columns2 = ['sim', 'trial', 'model', 'p_correct']
+columns_a = ['sim', 'trial', 'model', 'p_correct']
 
-df = pd.DataFrame(columns=columns2)
-for simnum in range(10):  # TODO! change to simcount
+df_a = pd.DataFrame(columns=columns_a)
+for simnum in range(sim_count):
     rows = [(simnum, x, 'blind', sim_blinds[simnum][x]) for x in range(15)]
-    temp_df = pd.DataFrame(columns=columns2, data=rows)
-    df = pd.concat([df, temp_df])
+    temp_df = pd.DataFrame(columns=columns_a, data=rows)
+    df_a = pd.concat([df_a, temp_df])
 
     rows = [(simnum, x, 'sights', sim_sights[simnum][x]) for x in range(15)]
-    temp_df = pd.DataFrame(columns=columns2, data=rows)
-    df = pd.concat([df, temp_df])
+    temp_df = pd.DataFrame(columns=columns_a, data=rows)
+    df_a = pd.concat([df_a, temp_df])
 
-fig = sns.lineplot(data=df, x='trial', y='p_correct', hue='model')
-fig.set(ylim = (0, 1))
+fig = sns.lineplot(data=df_a, x='trial', y='p_correct', hue='model')
+# fig.set(ylim = (0, 1));
+fig.set(ylim = (0.2, 1));
 
 
 # %%
