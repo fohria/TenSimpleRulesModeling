@@ -160,14 +160,38 @@ df_combo = testa.append(testb).append(testc)
 
 df_combo
 
+# %%
 # wait okay, so what we need is a column 'fig' with a, b, c and then the p_correct value and the 'easy' way to do that is just loop through but i GUESS we might be able to pivot/groupby or something?
+
+# seems to be very difficult to set y-axes labels individually
+
+retrowave = sns.color_palette(palette=["#f174a8",  "#7ae9b7", "#c782f5", "#47b9df", "#ade464"])
+# retrowave = ["#f174a8", "#c782f5", "#47b9df", "#7ae9b7", "#ade464"]
+sns.set_palette(retrowave)
+
+sns.set(rc={'axes.facecolor':'#444444', 'figure.facecolor':'#282828', 'axes.edgecolor':'#282828', 'figure.edgecolor': '#db02ac', 'text.color': '#abb2be', 'axes.labelcolor': '#abb2be', 'xtick.color': '#abb2be', 'ytick.color': '#abb2be', 'font.family': 'Helvetica', 'axes.grid': 'True', 'grid.color': '#282828', 'axes.spines.left': 'False'})
+
+# sns.set()
 
 grid = sns.FacetGrid(df_combo, col='fig', hue='model')
 grid.map(sns.lineplot, 'trial', 'p_correct')
+grid.add_legend()
+grid.set_xlabels("time step")
+grid.set(ylim=(0.2, 1), xlim=(-1, 15), xticks=[0, 5, 10, 14])
+grid.set_ylabels("p(correct)")
+# grid.despine()
+axes = grid.axes.flatten()
+axes[0].set_title("'subject' learning curves")
+axes[0].set_ylabel("p(correct)")
+axes[1].set_title("likelihood of \nstate-based RL model")
+axes[1].set_ylabel("likelihood of choice")
+axes[2].set_title("simulated learning curves \nfrom state-based RL")
+axes[2].set_ylabel("p(correct)")
 
 
-fig = sns.lineplot(data=df_combo, x='trial', y='p_figb', hue='model')
-fig.set(ylim=(0.2, 1));
+
+# fig = sns.lineplot(data=df_combo, x='trial', y='p_figb', hue='model')
+# fig.set(ylim=(0.2, 1));
 
 
 # %%
