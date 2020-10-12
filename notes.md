@@ -1,6 +1,7 @@
 
 ## TODOs
 - can probably integrate figure3 and figure3b into one notebook later
+- remove all matlab files?
 
 ## issues
 - OMP Error 15 about llvl and MKL. it may be a macos specific issue: https://stackoverflow.com/a/58869103
@@ -18,6 +19,8 @@
 
 all M6 files (sim/fit/lik) are never used
 SimulationFunctions/simulate_validationModel_v1.m
+
+same with simulate_blind_v1.m and simulate_fullRL_v1.m
 
 figure6 and figure7 files are self contained and dont use the sim/fit/lik folders at all. especially fig7 has very confusing one letter variable names that don't always correlate with names in the paper.
 
