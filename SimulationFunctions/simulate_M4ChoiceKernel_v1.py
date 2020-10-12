@@ -1,31 +1,33 @@
 import numpy as np
 from numba import njit, int32
+
 from .choose import choose
 
 
 @njit
-def simulate_M4ChoiceKernel_v1(T, mu, alpha_c, beta_c):
+def simulate_M4ChoiceKernel_v1(trial_count, bandit, alpha_c, beta_c):
+    """
+    simulate a participant using the choice kernel strategy.
+    """
 
-    CK = np.array([0.0, 0.0])
+    actions = np.zeros(trial_count, dtype=int32)
+    rewards = np.zeros(trial_count, dtype=int32)
 
-    a = np.zeros(T, dtype=int32)
-    r = np.zeros(T, dtype=int32)
+    CK = np.array([0.0, 0.0])  # CK = choice kernel
 
-    for t in range(T):
+    for trial in range(trial_count):
 
         # compute choice probabilities
-        p = np.exp(beta_c * CK) / np.sum(np.exp(beta_c * CK))
+        probabilities = np.exp(beta_c * CK) / np.sum(np.exp(beta_c * CK))
 
         # make choice based on probabilities
-        a[t] = choose(np.array([0, 1]), p)
+        actions[trial] = choose(np.array([0, 1]), probabilities)
 
         # generate reward based on choice
-        r[t] = np.random.rand() < mu[a[t]]
+        rewards[trial] = np.random.rand() < bandit[actions[trial]]
 
         # update choice kernel
-        # ahh, so the formula is slightly confusing to me: CKkt+1=CKkt+αc(akt−CKkt)
-        # but the key is the akt inside parenthesis, it's 0 for every action not chosen, so more simply put than in paper we can say "only the value of the performed action is updated" (which is same as in RW model)
         CK = (1 - alpha_c) * CK
-        CK[a[t]] += alpha_c * 1
+        CK[actions[trial]] += alpha_c * 1
 
-    return a, r
+    return actions, rewards

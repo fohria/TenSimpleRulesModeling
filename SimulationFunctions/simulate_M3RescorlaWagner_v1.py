@@ -1,28 +1,34 @@
 import numpy as np
 from numba import njit, int32
+
 from .choose import choose
 
 
 @njit
-def simulate_M3RescorlaWagner_v1(T, mu, alpha, beta):
+def simulate_M3RescorlaWagner_v1(trial_count, bandit, alpha, beta):
+    """
+    simulate a participant using Rescora-Wagner choice strategy.
+    """
 
-    Q = np.array([0.5, 0.5])  # init with equal values for each action
-    a = np.zeros(T, dtype=int32)
-    r = np.zeros(T, dtype=int32)
+    actions = np.zeros(T, dtype=int32)
+    rewards = np.zeros(T, dtype=int32)
 
-    for t in range(T):
+    # the Q matrix represents what "value" each choice has to the agent
+    Q = np.array([0.5, 0.5])  # init with equal probabilities for each action
+
+    for trial in range(trial_count):
 
         # compute choice probabilities (softmax)
-        p = np.exp(beta * Q) / np.sum(np.exp(beta * Q))
+        probabilities = np.exp(beta * Q) / np.sum(np.exp(beta * Q))
 
         # make choice based on choice probabilities
-        a[t] = choose(np.array([0, 1]), p)
+        actions[trial] = choose(np.array([0, 1]), probabilities)
 
         # generate reward based on choice
-        r[t] = np.random.rand() < mu[a[t]]
+        rewards[trial] = np.random.rand() < bandit[actions[trial]]
 
         # update action values
-        delta = r[t] - Q[a[t]]  # in paper this is called prediction error
-        Q[a[t]] += alpha * delta
+        delta = rewards[trial] - Q[actions[trial]]  # in paper this is called prediction error
+        Q[actions[trial]] += alpha * delta
 
-    return a, r
+    return actions, rewards

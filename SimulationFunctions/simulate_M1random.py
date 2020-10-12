@@ -5,20 +5,23 @@ from .choose import choose
 
 
 @njit
-def simulate_M1random_v1(trial_count, bandit, bias):
+def simulate_M1random(trial_count, bandit, bias):
     """
     simulates a participant making random choices with bias for one choice.
 
     parameters
     ----------
     trial_count : int
-        number of trials, i.e. how many times do we pull a bandit arm
+        number of trials, i.e. how many times do we pull a bandit arm.
+        in the paper this is called T
     bandit : numpy array of length 2
         represents a multi armed bandit. its length is the number of arms
         (NOTE: can only handle 2 arms for now) and each array item represents
         the probability of reward for pulling that bandit arm.
+        in the paper this is called mu
     bias : float (0-1)
-        the bias towards the leftmost (first array position) choice
+        the bias towards the leftmost (first array position) choice.
+        in the paper this is called b
 
     returns
     -------
