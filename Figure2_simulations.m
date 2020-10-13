@@ -77,6 +77,11 @@ end
 
 
 %% win-stay-lose-shift analysis
+% NOTE: the above name and the function name below are misleading
+% what the function returns is winstay loseSTAY values, in order to
+% plot p(stay) below
+% also note the order those values are being returned in is
+% losestay, winstay 
 for i = 1:length(sim)
     for n = 1:Nrep
         sim(i).wsls(:,n) = analysis_WSLS_v1(sim(i).a(:,n)', sim(i).r(:,n)');
@@ -117,11 +122,11 @@ for n = 1:1000
 end
 
 %% plot p(correct) behavior
-figure(1); 
+figure(1);
 E = nanmean(correctEarly,3);
 L = nanmean(correctLate,3);
 
-figure(1); clf; 
+figure(1); clf;
 set(gcf, 'Position', [284   498   750   300])
 ax = easy_gridOfEqualFigures([0.2 0.1], [0.08 0.14 0.05 0.03]);
 

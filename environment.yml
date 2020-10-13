@@ -1,4 +1,7 @@
 name: tensimplerules
+channels:
+  - default
+  - conda-forge
 dependencies:
   - ipython
   - ipykernel
@@ -6,3 +9,4 @@ dependencies:
   - pandas
   - scipy
   - seaborn
+  - jupytext

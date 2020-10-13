@@ -12,7 +12,7 @@ def choose(array, probabilities):
     :return: A random sample from the given array with a given probability.
     """
     return array[np.searchsorted(
-        np.cumsum(prob), np.random.random(), side="right"
+        np.cumsum(probabilities), np.random.random(), side="right"
     )]
 
 

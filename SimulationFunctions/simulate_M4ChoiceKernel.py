@@ -5,7 +5,7 @@ from .choose import choose
 
 
 @njit
-def simulate_M4ChoiceKernel_v1(trial_count, bandit, alpha_c, beta_c):
+def simulate_M4ChoiceKernel(trial_count, bandit, alpha_c, beta_c):
     """
     simulate a participant using the choice kernel strategy.
     """

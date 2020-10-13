@@ -1,3 +1,6 @@
+% this function is a bit confusing for two reasons
+% first, it returns loseStay not loseshift as you'd think from the model name
+% second, function name is wsls but what is returned is actually lsws
 function out = analysis_WSLS_v1(a, r)
 
 aLast = [nan a(1:end-1)];

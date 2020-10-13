@@ -5,13 +5,13 @@ from .choose import choose
 
 
 @njit
-def simulate_M3RescorlaWagner_v1(trial_count, bandit, alpha, beta):
+def simulate_M3RescorlaWagner(trial_count, bandit, alpha, beta):
     """
     simulate a participant using Rescora-Wagner choice strategy.
     """
 
-    actions = np.zeros(T, dtype=int32)
-    rewards = np.zeros(T, dtype=int32)
+    actions = np.zeros(trial_count, dtype=int32)
+    rewards = np.zeros(trial_count, dtype=int32)
 
     # the Q matrix represents what "value" each choice has to the agent
     Q = np.array([0.5, 0.5])  # init with equal probabilities for each action

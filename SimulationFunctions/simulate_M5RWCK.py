@@ -5,7 +5,7 @@ from .choose import choose
 
 
 @njit
-def simulate_M5RWCK_v1(trial_count, bandit, alpha, beta, alpha_c, beta_c):
+def simulate_M5RWCK(trial_count, bandit, alpha, beta, alpha_c, beta_c):
     """
     simulate a participant using a choice strategy that combines Rescorla-Wagner and choice kernel.
     """

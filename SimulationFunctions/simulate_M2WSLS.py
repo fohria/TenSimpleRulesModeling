@@ -40,7 +40,7 @@ def simulate_M2WSLS(trial_count, bandit, epsilon):
         actions[trial] = choose(np.array([0, 1]), probabilities)
 
         # generate reward based on choice
-        rewards[t] = np.random.rand() < bandit[actions[trial]]
+        rewards[trial] = np.random.rand() < bandit[actions[trial]]
 
         # set last action and reward to current before next loop iteration
         last_action = actions[trial]
