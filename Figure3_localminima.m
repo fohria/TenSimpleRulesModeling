@@ -94,6 +94,7 @@ for alpha=alphas
                     s=stim(t);
                     if update(t)
                         Q = .5+zeros(setsize(t),3);
+                        % hmm shouldnt this be WM not WM2?
                         WM2 = .5+zeros(setsize(t),3);
                     end
                     w=rho*(min(1,K/setsize(t)));
