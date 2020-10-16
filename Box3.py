@@ -177,17 +177,24 @@ sns.set(rc={
 })
 
 # heatmap coordinates are based on column indeces
-# TODO: this doesnt work if columns don't include real values!
-x_mark_real = np.argwhere(hot_data.columns == real_alpha).flatten()[0]
-y_mark_real = np.argwhere(hot_data.index == real_rho).flatten()[0]
+x_min = hot_data.columns.min()
+x_max = hot_data.columns.max()
+x_scale = (len(hot_data.columns) - 1) / (x_max - x_min)
+y_min = hot_data.index.min()
+y_max = hot_data.index.max()
+y_scale = (len(hot_data.index) - 1) / (y_max - y_min)
+
+x_mark_real = round((real_alpha - x_min) * x_scale)
+y_mark_real = round((real_rho - y_min) * y_scale)
 
 # get the best result and its coordinates for the heatmap
 best_index = brute_results.loglike.idxmax()
 best_result = brute_results.iloc[best_index, :]
 best_alpha = best_result['alpha']
 best_rho = best_result['rho']
-x_mark_best = np.argwhere(hot_data.columns == best_alpha).flatten()[0]
-y_mark_best = np.argwhere(hot_data.index == best_rho).flatten()[0]
+
+x_mark_best = round((best_alpha - x_min) * x_scale)
+y_mark_best = round((best_rho - y_min) * y_scale)
 
 # plot the heatmap, only print every 5 x/y ticks
 fig = sns.heatmap(hot_data, xticklabels=5, yticklabels=5)
@@ -298,8 +305,8 @@ def recover_participant(
 
 # %%
 # alpha, beta, rho, K
-# bounds = ((0.01, 0.99), (1, 25), (0.01, 0.99), (2, 6))
-bounds = [(0.01, 0.99), (1, 25), (0.01, 0.99)]
+# bounds = ((0.01, 0.99), (1, 30), (0.01, 0.99), (2, 6))
+bounds = [(0.01, 0.99), (1, 30), (0.01, 0.99)]
 results = []
 for _ in range(10):
     start_guess = [
@@ -320,75 +327,53 @@ for _ in range(10):
     if result.success is True:
         results.append(result)
 
+# %% [markdown]
+
+# Now we can get the best result from minimize and plot on our heatmap for comparison, and complete figure A.
+
 # %%
-results
-stimuli.dtype
+# get best minimize result and coordinates for heatmap
+best_minimize_index = np.argmin(np.array([res.fun for res in results]))
+best_minimize = results[best_minimize_index]
+# minimize result's x variable holds [alpha, beta, rho]
+best_fit_alpha = best_minimize.x[0]
+best_fit_rho = best_minimize.x[2]
+
+x_min = hot_data.columns.min()
+x_max = hot_data.columns.max()
+x_scale = (len(hot_data.columns) - 1) / (x_max - x_min)
+y_min = hot_data.index.min()
+y_max = hot_data.index.max()
+y_scale = (len(hot_data.index) - 1) / (y_max - y_min)
+
+best_fit_x_mark = round((best_fit_alpha - x_min) * x_scale)
+best_fit_y_mark = round((best_fit_rho - y_min) * y_scale)
 
 
-np.array([
-    stimuli[0:30],
-    choices[0:30],
-    rewards[0:30]
-]).shape
 
 
-results
-len(all_stimuli)
-all_trialnums
-np.empty((3, 30), dtype=int32)
+# get the best result and its coordinates for the heatmap
+best_index = brute_results.loglike.idxmax()
+best_result = brute_results.iloc[best_index, :]
+best_alpha = best_result['alpha']
+best_rho = best_result['rho']
+x_mark_best = np.argwhere(hot_data.columns == best_alpha).flatten()[0]
+y_mark_best = np.argwhere(hot_data.index == best_rho).flatten()[0]
 
+# plot the heatmap, only print every 5 x/y ticks
+fig = sns.heatmap(hot_data, xticklabels=5, yticklabels=5)
 
-all_stims = [data[block][0] for block in range(len(data))]
-
-for block in all_stims:
-    for thing in block:
-        print(thing)
-
-all_stims2 = [all_stims[]]
-type(all_stims[5])
-
-df.stimulus
-testdata = df[df.block <= 1]
-
-all_stims = testdata.stimulus
-all_acts = testdata.choice
-all_rews = testdata.reward
-
-testdata.block
-
-df
-
-block_lengths =
-
-30 + 45
-
-len(all_stims)
-
-
-temp = np.array(data, dtype=object)
-# stimuli, choices, rewards
-
-all_stimuli = [data[i][0] for i in range(len(data))]
-all_stimuli
-
-testdata = [['s', 'c', 'r'], ['ss', 'cc', 'rr']]
-
-all_stims = []
-all_acts = []
-all_rews = []
-for block in range(2):  # block 0,1
-    print(f"setsize: {len(np.unique(data[block][0]))}")
-    all_stims.append(data[1][0])
-
-for block in data:  # this is what we have now
-    pass
-
-data[2]
-
-data[1]
-data[0]
-
-np.array([np.array(data[block]) for block in range(len(data))])
-
-
-results
+fig = sns.scatterplot(
+    x = [x_mark_real + 0.5],  # put mark in middle of the heatmap box
+    y = [y_mark_real + 0.5],
+    marker="X",
+    color="red"
+)
+fig = sns.scatterplot(
+    x = [x_mark_best + 0.5],
+    y = [y_mark_best + 0.5],
+    marker=".",
+    color="black"
+)
+print(f"real alpha, rho: {real_alpha}, {real_rho}")
+print(f"best alpha, rho: {best_alpha}, {best_rho}")
