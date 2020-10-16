@@ -45,6 +45,8 @@
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from numba import njit, int32
+from scipy.optimize import minimize
 from itertools import product
 
 from SimulationFunctions.simulate_RLWM import simulate_RLWM_block
@@ -62,16 +64,17 @@ real_rho = 0.9
 real_K = 4
 
 # range of parameter values to calculate likelihoods for
-alphas = np.arange(0.05, 1, 0.2)
-betas = np.arange(1, 30, 10)
-rhos = np.arange(0.05, 1, 0.2)
-Ks = np.arange(2, 7)
+# alphas = np.arange(0.05, 1, 0.2)
+# betas = np.arange(1, 30, 10)
+# rhos = np.arange(0.05, 1, 0.2)
+# Ks = np.arange(2, 7)
 
 # finer grid
 alphas = np.arange(0.05, 0.51, 0.01)
 betas = np.append([1], np.arange(4, 20, 2))
 rhos = np.arange(0.5, 1.0, 0.01)
-Ks = np.arange(2, 7)
+# Ks = np.arange(2, 7)
+Ks = np.array([4])  # matlab code keeps this constant
 
 # %% [markdown]
 
@@ -96,11 +99,11 @@ for _ in range(3):  # 3 repetitions of each setsize
         #     for trial, (stimulus, choice, reward)
         #     in enumerate(zip(stimuli, choices, rewards))
         # ]
-
-        data.append([stimuli, choices, rewards])
-
+        #
         # for row in rows:
         #     data.append(row)
+
+        data.append([stimuli, choices, rewards])  #single line
 
         # data.append(rows)
 
@@ -111,20 +114,23 @@ for _ in range(3):  # 3 repetitions of each setsize
 
 # %% [markdown]
 
-# not sure saving as dataframe here is best choice, but above is fairly clean anyway. i think the next step with likelihoods is what took long time earlier but probably due to likelihood function taking long time so lets see.
+# The matlab code has a manual quirk here to check if the performance decreases with increasing setsize. I suspect parameter recovery is better when this pattern is true, but unfortunately there is no discussion in the code or the paper about this. I've chosen not to care about this, but will comment on the problem of recovery after our first heatmap plot.
 
 # ## calculate likelihood for all parameter combinations
 
-# %%
-from LikelihoodFunctions.lik_RLWM import likelihood_RLWM_block
+# we will now go through all the combinations of alpha, beta, rho and K we have and for each combination calculate the summed loglikelihood of all actions taken.
 
+# what this means is that we go through the choices from the simulation, and for each trial calculate the probability of that choice being made, based on a specific set of parameter values. So for parameter values very far from the true parameter values we used to run the simulation, we should get a much lower "score" (likelihood) than for parameter values very close to the true values.
+
+# %%
 loglikes = []
 
 for alpha, beta, rho, K in product(alphas, betas, rhos, Ks):
 
     loglike_allblocks = 0
-    for block in range(len(data)):
+    for block in range(15):
 
+        # blockdata = np.array(df.query('block == @block'))
         blockdata = np.array(data[block])  # numba wants numpy array
 
         loglike_allblocks += likelihood_RLWM_block(
@@ -133,27 +139,256 @@ for alpha, beta, rho, K in product(alphas, betas, rhos, Ks):
     loglikes.append(
         (alpha, beta, rho, K, loglike_allblocks))
 
-fit_results = pd.DataFrame(
+
+brute_results = pd.DataFrame(
     columns = ['alpha', 'beta', 'rho', 'K', 'loglike'],
     data = loglikes
 )
 
-# filter data to get same value ranges as in paper's plot
-filtered_results = fit_results.query("alpha <= 0.5 and rho >= 0.5")
+# %% [markdown]
 
+# I'm allergic to importing matplotlib just to do seemingly simple things such as modifying the labels on the x/y axis. Seaborn works okay for most things without such sillyness, but heatmap is a bit too complicated so it's cumbersome to customize. So we have to manually round the parameter values (because python often generates 7.000000000000001 instead of 7.0), and then tell `sns.heatmap` we only want every fifth tick label.
 
-# hot_data = filtered_results[[
-hot_data = fit_results[[
+# If you happen to know how I can give heatmap a list of y labels like `[0.5, 0.6, 0.7, 0.8, 0.9]` and it will use that automagically, please let me know!
+
+# A nice and convenient thing about seaborn though, is that when you run several plot commands in succession they'll automatically overlay on the same figure, and we exploit that to mark the 'real' parameters used for the simulation (the red x marks the spot!) and the best parameters found (the black dot).
+
+# ## create pivot table and plot likelihood surface
+
+# %%
+brute_results.alpha = brute_results.alpha.apply(lambda x: round(x, 2))
+brute_results.rho = brute_results.rho.apply(lambda x: round(x, 2))
+
+hot_data = brute_results[[
     'alpha', 'rho', 'loglike'
 ]].pivot_table(
     values = 'loglike',
-    # index = 'alpha',
-    # columns = 'rho',
     index = 'rho',
     columns = 'alpha',
     aggfunc = 'mean'
 )
 
+# setup the look of our plot
+sns.set(rc={
+    "figure.figsize": (8, 6),
+    "figure.dpi": 100,
+    "lines.markersize": 10,
+    "font.size": 10
+})
+
+# heatmap coordinates are based on column indeces
+# TODO: this doesnt work if columns don't include real values!
+x_mark_real = np.argwhere(hot_data.columns == real_alpha).flatten()[0]
+y_mark_real = np.argwhere(hot_data.index == real_rho).flatten()[0]
+
+# get the best result and its coordinates for the heatmap
+best_index = brute_results.loglike.idxmax()
+best_result = brute_results.iloc[best_index, :]
+best_alpha = best_result['alpha']
+best_rho = best_result['rho']
+x_mark_best = np.argwhere(hot_data.columns == best_alpha).flatten()[0]
+y_mark_best = np.argwhere(hot_data.index == best_rho).flatten()[0]
+
+# plot the heatmap, only print every 5 x/y ticks
+fig = sns.heatmap(hot_data, xticklabels=5, yticklabels=5)
+
+fig = sns.scatterplot(
+    x = [x_mark_real + 0.5],  # put mark in middle of the heatmap box
+    y = [y_mark_real + 0.5],
+    marker="X",
+    color="red"
+)
+fig = sns.scatterplot(
+    x = [x_mark_best + 0.5],
+    y = [y_mark_best + 0.5],
+    marker=".",
+    color="black"
+)
+print(f"real alpha, rho: {real_alpha}, {real_rho}")
+print(f"best alpha, rho: {best_alpha}, {best_rho}")
+
+# %% [markdown]
+
+# Note that seaborn/matplotlib puts the upmost part of the y-axis labels where their corresponding boxes are, so it might look a bit off vertically.
+
+# Now, in the case of our brute force search above, we found that the best likelihood wasn't actually found at the real/simulated parameter values. If we re-run the simulation and brute force again we may or may not get closer.
+
+# This is unfortunately something we have to accept; the problem of recovering parameter values is a statistical one and therefore we are going to get slightly different results every time. We will see in the next box, Box4, how to check the overall performance of parameter recovery.
+
+# %% [markdown]
+
+# ## using optimization algorithms to find parameters
+
+# Instead of using the brute force search above, SciPy has a nice optimization package with a function called `minimize`. We can feed our likelihood function into `minimize` and have it find the best fit for us.
+
+# The downside of this function is that it can get stuck in local minima, so it's a good idea to give it a bunch of random starting points. The brute force method doesn't have this problem as it will methodically go through the entire parameter space with the "resolution" (number of parameter combinations) we have chosen.
+
+# The upside is it can often be much quicker, especially if we create an optimized likelihood function with numba.
+
+# ## optimized likelihood function
+
+# %% [markdown]
+
+# First we need to reshape our simulation data, because numpy/numba doesn't like "ragged" arrays, meaning arrays of different lengths.
+
+# Somewhat ugly but can be cleaned if we save the simulation data smarter.
+
+# %%
+
+trials = 0
+stimuli = []
+choices = []
+rewards = []
+block_indeces = []
+
+for block in data:
+    # stimuli, choices, rewards
+    for trial in range(len(block[0])):
+        stimuli.append(block[0][trial])
+        choices.append(block[1][trial])
+        rewards.append(block[2][trial])
+        trials += 1
+    block_indeces.append(trials)
+
+stimuli = np.array(stimuli)
+choices = np.array(choices)
+rewards = np.array(rewards)
+block_indeces = np.array(block_indeces)
+
+# %% [markdown]
+
+# scipy's `minimize` function wants all the parameters in one variable. It also is, as you may have inferred from the name, a minimization function so we need to return the negative loglikelihood.
+
+# We follow the matlab code here in keeping K as a constant, but it can of course be added to the parameters we ask minimize to find.
+
+# %%
+@njit
+def recover_participant(
+    parameters, K, block_indeces, stimuli, choices, rewards):
+
+    alpha = parameters[0]
+    beta = parameters[1]
+    rho = parameters[2]
+
+    loglike_allblocks = 0
+
+    low_index = 0
+    for index in block_indeces:
+
+        high_index = index
+        blocksize = high_index - low_index
+        # numba wants an empty array to fill
+        blockdata = np.empty((3, blocksize), dtype=int32)
+        blockdata[0] = stimuli[low_index:high_index]
+        blockdata[1] = choices[low_index:high_index]
+        blockdata[2] = rewards[low_index:high_index]
+
+        loglike_allblocks += likelihood_RLWM_block(
+            alpha, beta, rho, K, blockdata)
+        low_index = index
+
+    return -loglike_allblocks
 
 
-sns.heatmap(hot_data)
+# %% [markdown]
+
+# Now we run minimize 10 times and save the results to then extract the best result. It's almost always a good practice to provide bounds to the method, otherwise we may get over/underflow errors. This can happen anyway, but luckily `minimize` tells us if the operation was a success or not which is why we have that additional check before appending the result.
+
+# In the below call to minimize, `start_guess` will automagically become the `parameters` in the function `recover_participant` we defined above, while the `args` become the rest of the arguments to the function, in order.
+
+# %%
+# alpha, beta, rho, K
+# bounds = ((0.01, 0.99), (1, 25), (0.01, 0.99), (2, 6))
+bounds = [(0.01, 0.99), (1, 25), (0.01, 0.99)]
+results = []
+for _ in range(10):
+    start_guess = [
+        np.random.rand(),       # alpha
+        np.random.uniform(20),  # beta
+        np.random.rand(),       # rho
+        #real_K
+    ]
+    result = minimize(
+        recover_participant,
+        start_guess,
+        # args=(real_K, data),  # data from the simulation earlier
+        # below will not work because it cant convert dtype object
+        # args=(real_K, np.array(data),  # data from the simulation earlier
+        args = (real_K, block_indeces, stimuli, choices, rewards),
+        bounds = bounds
+    )
+    if result.success is True:
+        results.append(result)
+
+# %%
+results
+stimuli.dtype
+
+
+np.array([
+    stimuli[0:30],
+    choices[0:30],
+    rewards[0:30]
+]).shape
+
+
+results
+len(all_stimuli)
+all_trialnums
+np.empty((3, 30), dtype=int32)
+
+
+all_stims = [data[block][0] for block in range(len(data))]
+
+for block in all_stims:
+    for thing in block:
+        print(thing)
+
+all_stims2 = [all_stims[]]
+type(all_stims[5])
+
+df.stimulus
+testdata = df[df.block <= 1]
+
+all_stims = testdata.stimulus
+all_acts = testdata.choice
+all_rews = testdata.reward
+
+testdata.block
+
+df
+
+block_lengths =
+
+30 + 45
+
+len(all_stims)
+
+
+temp = np.array(data, dtype=object)
+# stimuli, choices, rewards
+
+all_stimuli = [data[i][0] for i in range(len(data))]
+all_stimuli
+
+testdata = [['s', 'c', 'r'], ['ss', 'cc', 'rr']]
+
+all_stims = []
+all_acts = []
+all_rews = []
+for block in range(2):  # block 0,1
+    print(f"setsize: {len(np.unique(data[block][0]))}")
+    all_stims.append(data[1][0])
+
+for block in data:  # this is what we have now
+    pass
+
+data[2]
+
+data[1]
+data[0]
+
+np.array([np.array(data[block]) for block in range(len(data))])
+
+
+results
