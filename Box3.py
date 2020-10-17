@@ -83,29 +83,34 @@ Ks = np.array([4])  # matlab code keeps this constant
 # the imported simulation function simulates one block of the task, so we construct the blocks here for clarity.
 
 # %%
-data = []
-block = -1  # to match 0-indexing and keep track of block
+def simulate_participant():
+    data = []
+    block = -1  # to match 0-indexing and keep track of block
 
-for _ in range(3):  # 3 repetitions of each setsize
-    for setsize in range(2, 7):  # up to but not including 7
+    for _ in range(3):  # 3 repetitions of each setsize
+        for setsize in range(2, 7):  # up to but not including 7
 
-        block += 1
+            block += 1
 
-        stimuli, choices, rewards = simulate_RLWM_block(
-            real_alpha, real_beta, real_rho, real_K, setsize)
+            stimuli, choices, rewards = simulate_RLWM_block(
+                real_alpha, real_beta, real_rho, real_K, setsize)
 
-        # rows = [
-        #     (stimulus, choice, reward, setsize, block, trial)
-        #     for trial, (stimulus, choice, reward)
-        #     in enumerate(zip(stimuli, choices, rewards))
-        # ]
-        #
-        # for row in rows:
-        #     data.append(row)
+            # rows = [
+            #     (stimulus, choice, reward, setsize, block, trial)
+            #     for trial, (stimulus, choice, reward)
+            #     in enumerate(zip(stimuli, choices, rewards))
+            # ]
+            #
+            # for row in rows:
+            #     data.append(row)
 
-        data.append([stimuli, choices, rewards])  #single line
+            data.append([stimuli, choices, rewards])  #single line
 
-        # data.append(rows)
+            # data.append(rows)
+
+    return data
+
+data = simulate_participant()
 
 # column_names = [
 #     'stimulus', 'choice', 'reward', 'setsize', 'block', 'trial'
@@ -116,6 +121,27 @@ for _ in range(3):  # 3 repetitions of each setsize
 
 # The matlab code has a manual quirk here to check if the performance decreases with increasing setsize. I suspect parameter recovery is better when this pattern is true, but unfortunately there is no discussion in the code or the paper about this. I've chosen not to care about this, but will comment on the problem of recovery after our first heatmap plot.
 
+# Actually, let's check that and see how/if it affects the beta recovery later. Later: actually, yes, with simulation results like this:
+
+# setsize 2 mean: 0.9333333333333335
+# setsize 3 mean: 0.8962962962962963
+# setsize 4 mean: 0.8944444444444444
+# setsize 5 mean: 0.8755555555555556
+# setsize 6 mean: 0.8481481481481481
+
+# We get fitted parameters that are very very close to real parameters.
+
+# %%
+mean_rewards = {2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+for block in data:
+    setsize = len(np.unique(block[0]))
+    mean_rewards[setsize] += np.mean(block[2])
+    # print(setsize)
+
+for setsize in mean_rewards:
+    print(f"setsize {setsize} mean: {mean_rewards[setsize] / 3}")
+
+# %% [markdown]
 # ## calculate likelihood for all parameter combinations
 
 # we will now go through all the combinations of alpha, beta, rho and K we have and for each combination calculate the summed loglikelihood of all actions taken.
@@ -197,7 +223,8 @@ x_mark_best = round((best_alpha - x_min) * x_scale)
 y_mark_best = round((best_rho - y_min) * y_scale)
 
 # plot the heatmap, only print every 5 x/y ticks
-fig = sns.heatmap(hot_data, xticklabels=5, yticklabels=5)
+fig = sns.heatmap(
+    hot_data, xticklabels = 5, yticklabels = 5, cmap = 'viridis')
 
 fig = sns.scatterplot(
     x = [x_mark_real + 0.5],  # put mark in middle of the heatmap box
@@ -241,26 +268,30 @@ print(f"best alpha, rho: {best_alpha}, {best_rho}")
 # Somewhat ugly but can be cleaned if we save the simulation data smarter.
 
 # %%
+def reshape_simdata(data):
+    trials = 0
+    stimuli = []
+    choices = []
+    rewards = []
+    block_indeces = []
 
-trials = 0
-stimuli = []
-choices = []
-rewards = []
-block_indeces = []
+    for block in data:
+        # stimuli, choices, rewards
+        for trial in range(len(block[0])):
+            stimuli.append(block[0][trial])
+            choices.append(block[1][trial])
+            rewards.append(block[2][trial])
+            trials += 1
+        block_indeces.append(trials)
 
-for block in data:
-    # stimuli, choices, rewards
-    for trial in range(len(block[0])):
-        stimuli.append(block[0][trial])
-        choices.append(block[1][trial])
-        rewards.append(block[2][trial])
-        trials += 1
-    block_indeces.append(trials)
+    stimuli = np.array(stimuli)
+    choices = np.array(choices)
+    rewards = np.array(rewards)
+    block_indeces = np.array(block_indeces)
 
-stimuli = np.array(stimuli)
-choices = np.array(choices)
-rewards = np.array(rewards)
-block_indeces = np.array(block_indeces)
+    return stimuli, choices, rewards, block_indeces
+
+stimuli, choices, rewards, block_indeces = reshape_simdata(data)
 
 # %% [markdown]
 
@@ -271,11 +302,14 @@ block_indeces = np.array(block_indeces)
 # %%
 @njit
 def recover_participant(
-    parameters, K, block_indeces, stimuli, choices, rewards):
+    parameters, K, stimuli, choices, rewards, block_indeces):
+# def recover_participant(
+#     parameters, stimuli, choices, rewards, block_indeces):
 
     alpha = parameters[0]
     beta = parameters[1]
     rho = parameters[2]
+    # K = parameters[3]
 
     loglike_allblocks = 0
 
@@ -304,29 +338,32 @@ def recover_participant(
 # In the below call to minimize, `start_guess` will automagically become the `parameters` in the function `recover_participant` we defined above, while the `args` become the rest of the arguments to the function, in order.
 
 # %%
-# alpha, beta, rho, K
-# bounds = ((0.01, 0.99), (1, 30), (0.01, 0.99), (2, 6))
-bounds = [(0.01, 0.99), (1, 30), (0.01, 0.99)]
-results = []
-for _ in range(10):
-    start_guess = [
-        np.random.rand(),       # alpha
-        np.random.uniform(20),  # beta
-        np.random.rand(),       # rho
-        #real_K
-    ]
-    result = minimize(
-        recover_participant,
-        start_guess,
-        # args=(real_K, data),  # data from the simulation earlier
-        # below will not work because it cant convert dtype object
-        # args=(real_K, np.array(data),  # data from the simulation earlier
-        args = (real_K, block_indeces, stimuli, choices, rewards),
-        bounds = bounds
-    )
-    if result.success is True:
-        results.append(result)
+def fit_participant(stimuli, choices, rewards, block_indeces):
+    # alpha, beta, rho
+    bounds = [(0.05, 0.99), (1, 30), (0.01, 0.99)]
+    # bounds = [(0.01, 0.99), (1, 30), (0.01, 0.99), (2, 6)]
+    results = []
+    for _ in range(10):
+        start_guess = [
+            np.random.rand(),       # alpha
+            np.random.uniform(20),  # beta
+            np.random.rand(),       # rho
+            # real_K                  # K
+        ]
+        result = minimize(
+            recover_participant,
+            start_guess,
+            args = (real_K, stimuli, choices, rewards, block_indeces),
+            # args = (stimuli, choices, rewards, block_indeces),
+            bounds = bounds
+        )
+        if result.success is True:
+            results.append(result)
 
+    return results
+
+results = fit_participant(stimuli, choices, rewards, block_indeces)
+results
 # %% [markdown]
 
 # Now we can get the best result from minimize and plot on our heatmap for comparison, and complete figure A.
@@ -339,35 +376,26 @@ best_minimize = results[best_minimize_index]
 best_fit_alpha = best_minimize.x[0]
 best_fit_rho = best_minimize.x[2]
 
-x_min = hot_data.columns.min()
-x_max = hot_data.columns.max()
-x_scale = (len(hot_data.columns) - 1) / (x_max - x_min)
-y_min = hot_data.index.min()
-y_max = hot_data.index.max()
-y_scale = (len(hot_data.index) - 1) / (y_max - y_min)
+x_mark_fit = round((best_fit_alpha - x_min) * x_scale)
+y_mark_fit = round((best_fit_rho - y_min) * y_scale)
 
-best_fit_x_mark = round((best_fit_alpha - x_min) * x_scale)
-best_fit_y_mark = round((best_fit_rho - y_min) * y_scale)
-
-
-
-
-# get the best result and its coordinates for the heatmap
-best_index = brute_results.loglike.idxmax()
-best_result = brute_results.iloc[best_index, :]
-best_alpha = best_result['alpha']
-best_rho = best_result['rho']
-x_mark_best = np.argwhere(hot_data.columns == best_alpha).flatten()[0]
-y_mark_best = np.argwhere(hot_data.index == best_rho).flatten()[0]
-
+# cmap = sns.color_palette("colorblind", as_cmap=True)
+cmap = 'viridis'
+# cmap = 'Spectral'
 # plot the heatmap, only print every 5 x/y ticks
-fig = sns.heatmap(hot_data, xticklabels=5, yticklabels=5)
+fig = sns.heatmap(hot_data, xticklabels=5, yticklabels=5, cmap=cmap)
 
 fig = sns.scatterplot(
-    x = [x_mark_real + 0.5],  # put mark in middle of the heatmap box
+    x = [x_mark_real + 0.5],
     y = [y_mark_real + 0.5],
     marker="X",
     color="red"
+)
+fig = sns.scatterplot(
+    x = [x_mark_fit + 0.5],
+    y = [y_mark_fit + 0.5],
+    marker="*",
+    color="blue"
 )
 fig = sns.scatterplot(
     x = [x_mark_best + 0.5],
@@ -375,5 +403,88 @@ fig = sns.scatterplot(
     marker=".",
     color="black"
 )
-print(f"real alpha, rho: {real_alpha}, {real_rho}")
-print(f"best alpha, rho: {best_alpha}, {best_rho}")
+
+print(f"red x - real alpha, rho: {real_alpha}, {real_rho}")
+print(f"black dot - best brute force alpha, rho: {best_alpha}, {best_rho}")
+print(f"blue star - best minfitted alpha, rho: {best_fit_alpha}, {best_fit_rho}")
+
+# %% [markdown]
+
+# With a few iterations of `minimize` and enough parameter combinations for the brute force method, they mostly reach the same result. The brute force method is needed to plot the likelihood surface/heatmap which is good for checking your likelihood function works as expected. When you've done that it may be more convenient to use the `minimize` directly. An additional benefit of `minimize` is that it is usually able to find
+
+# Speaking of checking likelihood function, in some situations our plots above give us results that look off. Meaning they are not at the "max" of the surface. That's not an error, because we are only plotting two out of three estimated parameters.
+
+# So if we check what the likelihoods are in our hot data for the best results and the real values we see the real values indeed has a better likelihood.
+
+# %%
+print(f"likelihood for best result: {hot_data.iloc[y_mark_best, x_mark_best]}")
+print(f"likelihood for real values: {hot_data.iloc[y_mark_real, x_mark_real]}")
+
+# %% [markdown]
+
+# But if we go back to our dataframe with estimated values for the $\beta$ parameter we can see that the best `loglike` is where it was plotted on the heatmap.
+
+# %%
+best_loglike = brute_results.loglike.max()
+print(f"best loglike: {best_loglike}")
+print(brute_results.query("loglike == @best_loglike"))
+
+#%% [markdown]
+
+# Beta estimation isn't great, but as previously mentioned, this is not something the paper discusses. Running the matlab code gives wildly different distances to the true beta depending on the simulation, so for the next step and figure, be aware that the plot doesn't show how far we are to the real parameters, only how far away we are from the best parameters we can fit.
+
+# ## how many starting guesses before we find global max?
+
+# To create the lineplot in Box3 we run a simulation 10 times, each time using `minimize` to fit 10 times. We save all the results to a dataframe so we can compare the final parameter values found to previous ones and what iteration they were found at.
+
+# %%
+from scipy.spatial.distance import euclidean
+
+result_rows = []
+for simfit in range(10):
+
+    simdata = simulate_participant()
+
+    stimuli, choices, rewards, block_indeces = reshape_simdata(simdata)
+
+    fit_results = fit_participant(
+        stimuli, choices, rewards, block_indeces)
+
+    fit_likelihoods = np.array([result.fun for result in fit_results])
+    best_fitindex = np.argmin(fit_likelihoods)
+    best_parameters = fit_results[best_fitindex].x
+
+    best_distance_so_far = 999
+    for iteration, result in enumerate(fit_results):
+        distance_to_best = euclidean(best_parameters, result.x)
+        if distance_to_best < best_distance_so_far:
+            best_distance_so_far = distance_to_best
+        result_rows.append(
+            (simfit,
+            iteration,
+            distance_to_best,
+            best_distance_so_far)
+        )
+
+
+columns = [
+    'sim iteration',
+    'fit iteration',
+    'dist to best',
+    'best dist so far'
+]
+result_data = pd.DataFrame(columns = columns, data = result_rows)
+
+sns.lineplot(
+    data = result_data,
+    x = 'fit iteration',
+    y = 'best dist so far'
+)
+
+# and log scale, removing the last iteration since it's 0
+fig = sns.lineplot(
+    data=result_data.query("`fit iteration` != 9"),
+    x='fit iteration',
+    y='best dist so far'
+)
+fig.set(yscale="log");

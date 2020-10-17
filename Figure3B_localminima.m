@@ -11,7 +11,7 @@ Ks=2:6;% capacity
 
 % real simulation parameters
 realalpha=.1;
-realbeta=8;
+realbeta=10;
 realrho=.9;
 realK=4;
 %% simulate one data set
@@ -103,7 +103,10 @@ for iter = 1:10
         [m,i]=min(pars(:,end));
         bestllh(iter,init)=m;
         bestpars(iter,init,:)=pars(i,1:end-1);
+        % disp([num2str(pars(i,1:end-1))])
     end
+    
+    disp(["real beta 10, fit beta: ",num2str(bestpars(iter,init,3) * 50)])
     % find global best fit
     % hmm i'm not sure this works as intended, if all or some of the fits,
     % i.e. if values in pars(:,end) are the same, the index received
@@ -142,8 +145,11 @@ ylabel('local-global best nlh')
 
 % compute distance to "gloabl" best parameters as a function of optimizer
 % iteration over random starting points.
+disp([num2str(bestpars)])
 bestpars = bestpars(:,1:end-1,:)-repmat(bestpars(:,end,:),[1,ninitialpoints-1,1]);
+disp([num2str(bestpars)])
 bestpars = sum(bestpars.^2,3);
+disp([num2str(bestpars)])
 subplot(2,2,3)
 errorbar(mean(bestpars),std(bestpars)/sqrt(iter),'linewidth',1)
 set(gca,'fontsize',14)
