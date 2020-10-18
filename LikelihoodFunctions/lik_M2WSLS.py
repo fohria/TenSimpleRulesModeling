@@ -3,7 +3,7 @@ from numba import njit
 
 
 @njit
-def lik_M2WSLS_v1(parameters, actions, rewards):
+def lik_M2WSLS(parameters, actions, rewards):
 
     epsilon = parameters[0]
 

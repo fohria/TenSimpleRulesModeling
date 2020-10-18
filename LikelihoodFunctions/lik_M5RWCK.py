@@ -3,11 +3,14 @@ from numba import njit
 
 
 @njit
-def lik_M4CK_v1(parameters, actions, rewards):
+def lik_M5RWCK(parameters, actions, rewards):
 
-    alpha_c = parameters[0]
-    beta_c = parameters[1]
+    alpha = parameters[0]
+    beta = parameters[1]
+    alpha_c = parameters[2]
+    beta_c = parameters[3]
 
+    Q = np.array([0.5, 0.5])
     CK = np.array([0.0, 0.0])
 
     trialcount = len(actions)
@@ -16,10 +19,15 @@ def lik_M4CK_v1(parameters, actions, rewards):
     for trial in range(trialcount):
 
         # compute choice probabilities
-        p = np.exp(beta_c * CK) / np.sum(np.exp(beta_c * CK))
+        V = beta * Q + beta_c * CK
+        p = np.exp(V) / np.sum(np.exp(V))
 
         # compute choice probability for actual choice
         choice_probabilities[trial] = p[actions[trial]]
+
+        # update values
+        delta = rewards[trial] - Q[actions[trial]]
+        Q[actions[trial]] += alpha * delta
 
         # update choice kernel
         CK = (1 - alpha_c) * CK

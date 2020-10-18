@@ -2,7 +2,7 @@ import numpy as np
 from numba import njit
 
 @njit
-def lik_M3RescorlaWagner_v1(parameters, actions, rewards):
+def lik_M3RescorlaWagner(parameters, actions, rewards):
 
     alpha = parameters[0]
     beta = parameters[1]

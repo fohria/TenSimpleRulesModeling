@@ -4,7 +4,7 @@ from numba import njit
 
 # python's minimize function needs parameters to be a list
 @njit
-def lik_M1random_v1(parameters, actions, rewards):
+def lik_M1random(parameters, actions, rewards):
 
     bias = parameters[0]
     # note rewards array is not used here but included to fit notation better with other likelihood functions
