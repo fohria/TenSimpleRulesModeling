@@ -9,4 +9,5 @@ dependencies:
   - pandas
   - scipy
   - seaborn
+  - numba
   - jupytext
