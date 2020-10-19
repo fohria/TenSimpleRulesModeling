@@ -223,8 +223,10 @@ x_mark_best = round((best_alpha - x_min) * x_scale)
 y_mark_best = round((best_rho - y_min) * y_scale)
 
 # plot the heatmap, only print every 5 x/y ticks
+# cmap = sns.color_palette("colorblind", as_cmap=True)
+cmap = 'viridis'
 fig = sns.heatmap(
-    hot_data, xticklabels = 5, yticklabels = 5, cmap = 'viridis')
+    hot_data, xticklabels = 5, yticklabels = 5, cmap = cmap)
 
 fig = sns.scatterplot(
     x = [x_mark_real + 0.5],  # put mark in middle of the heatmap box
