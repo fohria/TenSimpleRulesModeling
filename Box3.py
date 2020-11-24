@@ -16,6 +16,8 @@
 
 # The main purpose here is to show how we can visualize the parameter space to get an idea of how close to the true parameters we can get. This can be tricky if there are multiple hot spots (local maxima). If you don't get how the model below works, don't worry, just skip that. The heatmap visualisation is the important bit; being able to see things to sanity check your work is always good.
 
+# Another way to look at this exercise is that we can use heatmaps to troubleshoot or confirm our likelihood functions. It can be very tricky to code your own likelihood functions, so the likelihood map is good to have in your debug toolbox.
+
 # ## Experimental task
 
 # Our simulated participants will partake in a task where they see a picture (stimulus) and through trial-and-error have to learn which of three buttons (our actions or choices) to push to receive a reward. The experiment has multiple blocks, each with a different number of stimuli ranging from 2 to 6 (`setsize` variable below). Every block is repeated three times, so we have a total of $5 * 3 = 15$ blocks. Within a block, each stimuli is repeated 15 times giving us a total of $(2 + 3 + 4 + 5 + 6) * 15 = 300$ trials, and including the block repeats we thus have $300 * 3 = 900$ trials in total.
@@ -502,4 +504,4 @@ fig.set(yscale="log");
 
 # %% [markdown]
 
-# What does this plot mean? It means that on average, the more calls to `minimize` we do with random starting points, the closer we get to the true paramete values. However, on the first iteration we're mostly "just" around `10^-3` (at least with the runs made when writing this) away from the true values. So depending on at what step of your analysis you are, you may choose to call `minimize` just once. Or 100 times if you want to fine tune the results towards the end of your analysis. These decisions are always a question of "it depends" :) 
+# What does this plot mean? It means that on average, the more calls to `minimize` we do with random starting points, the closer we get to the true paramete values. However, on the first iteration we're mostly "just" around `10^-3` (at least with the runs made when writing this) away from the true values. So depending on at what step of your analysis you are, you may choose to call `minimize` just once. Or 100 times if you want to fine tune the results towards the end of your analysis. These decisions are always a question of "it depends" :)

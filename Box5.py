@@ -43,11 +43,11 @@ simfit_runcount = 100  # how many times to simulate each model and fit
 
 # We create an empty 5x5 matrix to hold our results. Each row represents the simulated model, with columns being the fitted models. Every loop, we first simulate model 1, then fit models 1-5 on the simulation data, and record in the confusion matrix what model had the best fit.
 
-# The `fit_all` function is a short wrapper around individual model specific fitting functions, each using scipy's `minimize` function to estimate parameter values and also returning the BIC value of the model's fit. The BIC value is what's used to decide what model was the best fit.
+# The `fit_all` function is a short wrapper around individual model specific fitting functions, each using scipy's `minimize` function to estimate parameter values and also returning the BIC value of the model's fit. The [BIC value](https://en.wikipedia.org/wiki/Bayesian_information_criterion) is what's used to decide what model was the best fit.
 
 # $$BIC = -2log\hat{LL} + k_mlog(T)$$
 
-# where $\hat{LL}$ is the likelihood (small error in the paper which states $\hat{LL}$ is the log-likelihood), $k_m$ is the number of parameters for the model and $T$ is the number of trials.
+# where $\hat{LL}$ is the likelihood (tiny error in the paper here which states $\hat{LL}$ is the log-likelihood), $k_m$ is the number of parameters for the model and $T$ is the number of trials.
 
 # Code example for Model 3:
 
@@ -111,11 +111,11 @@ for simfitrun in range(simfit_runcount):
 # ## Plot confusion matrix
 
 # %%
-cmap = sns.color_palette("colorblind", as_cmap=True)
+cmap = sns.color_palette("colorblind", as_cmap = True)
 # cmap = 'viridis'
 fig = sns.heatmap(
     confusion_matrix / simfit_runcount, annot = True, cmap = cmap)
-fig.set(xlabel="fit model", ylabel="simulated model");
+fig.set(xlabel = "fit model", ylabel = "simulated model");
 
 # %% [markdown]
 
@@ -136,7 +136,7 @@ for column in range(inverse_confmatrix.shape[1]):
     inverse_confmatrix[:, column] = inv_column
 
 fig = sns.heatmap(inverse_confmatrix, annot = True, cmap = cmap)
-fig.set(xlabel="fit model", ylabel="simulated model");
+fig.set(xlabel = "fit model", ylabel = "simulated model");
 
 # %% [markdown]
 

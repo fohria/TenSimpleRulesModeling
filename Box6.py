@@ -222,7 +222,7 @@ for simfit in range(simfitcount):
         m3b_params[2]   # model bias bias
     ))
 
-# %%
+# %% [markdown]
 
 # ## Plot fitted and real values for Model 3
 

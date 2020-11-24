@@ -12,13 +12,15 @@
 
 # **Figure B:** This shows how we model the two participants with the state-based (sighted) model. In other words, we fit the sighted model to both blind and sighted data. One model, two sets of data. Interestingly, it seems the sighted model has a higher likelihood for explaining the blind data than the sighted data.
 
-# However, if we use the fitted parameters found in figure B and *simulate* using the sighted model, we find that the behaviour produced (in the form of learning curves; **figure C**) looks like the sighted behaviour in figure A. But when simulating the sighted model with the parameters fit to *blind data* it produces behaviour that doesn't look like the behaviour in figure A.
+# **Figure C:** If we use the fitted parameters found in figure B and *simulate* using the sighted model, we find that the behaviour produced (in the form of learning curves) looks like the sighted behaviour in figure A. But when simulating the sighted model with the parameters fit to *blind data* it produces behaviour that doesn't look like the behaviour in figure A.
 
-# Got it? Cool. Let's describe the task we will use for this experiment.
+# In other words, it may be *theoretically* correct that one model has higher likelihood than the true one (figure b), we should always test this in *practice* to confirm if the behaviour is the same (figure c vs figure a).
+
+# Got it? Cool :) Let's describe the task we will use for this experiment!
 
 # ## The experimental task
 
-# Imagine there are three different pictures that can be shown to you, and you have to learn which of three buttons to push depending on the picture. That's the "sighted" model. For the "blind" model, imagine that you are, well, blind. You get told when it's time to push a button again, and maybe you will learn the pattern, maybe you won't. Sounds like a horrifying task now that I put it that way.
+# Imagine there are three different pictures that can be shown to you, and you have to learn which of three buttons to push depending on the picture. That's the "sighted" model. For the "blind" model, imagine that you are, well, blind. You get told when it's time to push a button, maybe you will learn the correct pattern, maybe you won't. Sounds like a horrifying task now that I put it that way.
 
 # The paper describes the basic rules of the task, where we have three stimuli $s_1, s_2, s_3$ and three actions $a_1, a_2, a_3$.
 

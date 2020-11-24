@@ -2,11 +2,13 @@
 
 # # Box 4 - parameter recovery in the reinforcement learning model
 
-# Here we have the same task as in box2/fig2, namely the two armed bandit task. We are going to simulate a participant and then recover (fit the model) to the observed behaviour (actions, rewards) to see how close we get to the parameter values used for the simulation. We will do this at least 1000 times to see how well we can expect the recovery to work overall.
+# Here we have the same task as in Box/Figure 2, namely the two armed bandit task. We are going to simulate a participant and then fit the model to the observed behaviour (actions, rewards) to see how close we get to the parameter values used for the simulation. This can also be called "recovery of parameters". We will do this at least 1000 times (simulate -> recover) to see how well we can expect the recovery to work overall.
 
-# Specifically, one arm has probability 0.2 for reward and the other p=0.8 to receive reward. and we do 1000 trials. this is, of course, a best case scenario type, in a real experiment it would be very unlikely we would get a person to do 1000 trials of this. the algorithm may be able to learn way more quickly than 1000 trials what arm is best, but a good question here is how many trials are needed to be able to recover the parameters with some certainty? let's come back to that question later.
+# If you looked at Box3 before reading this, you may wonder what the difference is. Well, here we look at average ability to recover across many pairs of simulation and fitting, whereas in Box3 we looked at a single simulation and recovery. So box3 was more about visualizing the likelihood function than finding general patterns in parameter recovery ability.
 
-# So, next, to simulate one (ro)bot participant, we use model3, Rescorla-Wagner. this model has two parameters; learning rate alpha and softmax temperature beta. the authors suggest picking random parameter values so let's visualise those values to get a feel for what values to expect.
+# Specifically, one arm has probability 0.2 for reward and the other p=0.8 to receive reward. As before, we do 1000 trials. This is, of course, a best case scenario type, in a real experiment it would be very unlikely we would get a person to do 1000 trials of anything. The algorithm may be able to learn way more quickly than 1000 trials what arm is best, but a good question here is how many trials are needed to be able to recover the parameters with some certainty? Let's come back to that question later.
+
+# So, next, to simulate one (ro)bot participant, we use model3, Rescorla-Wagner. This model has two parameters; learning rate alpha and softmax temperature beta. The authors suggest picking random parameter values for each simulation so let's visualise those values to get a feel for what values to expect.
 
 # ## general imports
 # %%
@@ -23,15 +25,15 @@ from numba import njit
 from SimulationFunctions.simulate_M3RescorlaWagner import simulate_M3RescorlaWagner as simulate
 from LikelihoodFunctions.lik_M3RescorlaWagner import lik_M3RescorlaWagner as likelihood
 
-# reset look of graphs, gives a decent checkboard background
+# reset look of graphs, gives a decent checkerboard background
 sns.set()
 # %% [markdown]
 
 # ## visualising distributions for parameter values
 
-# ### $\alpha ~ U(0, 1)$
+# ### $\alpha \sim U(0, 1)$
 
-# This one may not really need a visualisation if you're familiar with probability distributions. But I like visualisations and think it's a good practice to confirm things look like expected.
+# This one may not really need a visualisation if you're familiar with probability distributions. But I like visualisations and think it's a good practice to confirm that things look like expected.
 # %%
 sns.histplot(np.random.uniform(0, 1, 100000), stat = 'probability')
 
@@ -134,9 +136,9 @@ sns.scatterplot(data=data, x='realbeta', y='fitbeta', hue='badalpha')
 
 # %% [markdown]
 
-# As in the paper we see that fits are farily good at $\beta < 10$ and then get increasingly worse. Many of the values hit our upper bound for beta, even though their true value is not really close to 60.
+# As in the paper we see that fits are farily good at $\beta < 10$ and then get increasingly worse. Many of the values hit our upper bound for beta, even though their true value is not really close to 60. I suspect this is due to larger betas all have fairly greedy behavior. If we look closely, fits for $10 < \beta < 20$ arent *that* bad, there's still some correlation. But more than $20$, and we can't distinguish one greedy beta from another. Due to randomness we thus also sometimes get *really* greedy behaviour from low betas, hence why some $\beta < 20$ are estimated to be almost $60$.
 
-# But it also looks like there are many more bad alphas in the alphas plot than in the betas plot, where did they all go? Let's plot only the betas that are/have badalphas so to speak:
+# Moving along; it also looks like there are many more bad alphas in the alphas plot than in the betas plot, where did they all go? Let's plot only the betas that are/have badalphas so to speak:
 
 # %%
 sns.scatterplot(data=data.query('badalpha == True'), x='realbeta', y='fitbeta')
@@ -157,7 +159,7 @@ fig.set(xlim=(0,1), ylim=(0,1))
 
 # What you most likely will see is an increase in "bad" alphas and much worse beta recovery. I don't think the paper brings this up, but it is a highly important aspect. Because you may have to increase the number of trials your human participants ~suffer~ go through in order to have some decent certainty you can fit your model(s).
 
-# ## Confidence for individual fitted parameter values
+# ## Confidence for individually fitted parameter values
 
 # General patterns are one thing, but how certain can we be that a single case has been recovered well? The recovery is made on individual level, meaning we fit one pair of parameters for one participant, another pair of parameters for the next participant and so on. In each case, how do we know if it's a "bad" recovery or a "good" one? The simple answer is: we don't. We can only get a general idea of how far, on average, we are from the true parameters.
 
@@ -182,7 +184,7 @@ fig.axvline(ci_up)
 
 # %% [markdown]
 
-# So, in short, we can expect that learning rate alpha will be off by 0.2 in 95% of our cases. Is that acceptable? I can't say, I guess that depends on the experimental task. But having this analysis, we can now go back and simulate/recover to see how much our uncertainty is impacted by different number of trials for example.
+# The graph shows we can expect that learning rate alpha will be off by 0.2 in 95% of our cases. Is that acceptable? I can't say, I guess that depends on the experimental task and your particular circumstances. But having this analysis, we can now go back and simulate/recover to see how much our uncertainty is impacted by different number of trials for example.
 
 # What about uncertainty for $\beta$?
 
