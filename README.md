@@ -1,13 +1,14 @@
 ## todo
 
+- [ ] remove this todo list
 - [ ] add box1 to go through the models and how theyre coded (can cite maths from paper and show code)
     - [ ] remove todo at top in box2
 - [ ] resolve confusion about inverted confusion matrices in box5
 - [ ] resolve discussion point at end of box5
 - [ ] resolve confusion about entire box6
-- [ ] cleanup box7
-    - [ ] put functions in subfolders
-    - [ ] save to dataframe while simfitting, can then plot immediately without creating dataframes individually 
+- [x] cleanup box7
+    - [x] put functions in subfolders
+    - [x] save to dataframe while simfitting, can then plot immediately without creating dataframes individually
 
 # TenSimpleRulesModeling
 
