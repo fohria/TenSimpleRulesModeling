@@ -48,14 +48,12 @@
 %autoreload 2
 
 import numpy as np
-from numba import njit, int32, float64
-
 import pandas as pd
 import seaborn as sns
-
 from scipy.optimize import minimize
 
-from SimulationFunctions.choose import choose
+from SimulationFunctions.simulate_box7 import simulate_blind, simulate_sights
+from LikelihoodFunctions.lik_box7 import llh_sights, posterior
 
 # %% [markdown]
 
@@ -69,162 +67,11 @@ from SimulationFunctions.choose import choose
 
 # Choices are again made by softmax, using $\beta$ as our inverse temperature.
 
-# ## Simulation functions
-
-# %%
-@njit
-def simulate_blind(stimuli, alpha_pos, beta):
-
-    alpha_neg = 0
-
-    states = np.zeros(10 * 45, dtype=int32)  # 10 blocks each with 45 trials
-    actions = np.zeros(10 * 45, dtype=int32)
-    rewards = np.zeros(10 * 45, dtype=int32)
-
-    # index represents state/stimuli
-    correct_actions = np.array([0, 0, 2], dtype=int32)
-
-    for block in range(10):
-
-        Q = np.ones(3) / 3  # each action has 1/3 change to start with
-
-        for trial in range(45):
-
-            observation = stimuli[trial]
-            probchoice = np.exp(beta * Q) / np.sum(np.exp(beta * Q))
-
-            action = choose(np.array([0, 1, 2], dtype=int32), probchoice)
-            reward = action == correct_actions[observation]
-
-            delta = reward - Q[action]
-            if delta > 0:
-                Q[action] += alpha_pos * delta
-            elif delta < 0:  # paper doesnt define delta == 0
-                Q[action] += alpha_neg * delta
-
-            save_index = block * 45 + trial
-            states[save_index] = observation
-            actions[save_index] = action
-            rewards[save_index] = reward
-
-    return states, actions, rewards
-
-# %%
-@njit
-def simulate_sights(stimuli, alpha_pos, beta):
-
-    alpha_neg = 0
-
-    states = np.zeros(10 * 45, dtype=int32)
-    actions = np.zeros(10 * 45, dtype=int32)
-    rewards = np.zeros(10 * 45, dtype=int32)
-
-    correct_actions = np.array([0, 0, 2], dtype=int32)
-
-    for block in range(10):
-
-        Q = np.ones((3, 3)) / 3.0
-
-        for trial in range(45):
-
-            observation = stimuli[trial]
-            Q_row = Q[observation]
-            prob_choice = np.exp(beta * Q_row) / np.sum(np.exp(beta * Q_row))
-
-            action = choose(np.array([0, 1, 2], dtype=int32), prob_choice)
-            reward = action == correct_actions[observation]
-
-            delta = reward - Q[observation, action]
-            if delta > 0:
-                Q[observation, action] += alpha_pos * delta
-            elif delta < 0:
-                Q[observation, action] += alpha_neg * delta
-
-            save_index = block * 45 + trial
-            states[save_index] = observation
-            actions[save_index] = action
-            rewards[save_index] = reward
-
-    return states, actions, rewards
+# As in previous boxes, we import the simulation and likelihood functions and here present the main loop and its utility functions.
 
 # %% [markdown]
 
-# ## Likelihood function
-
-# We won't fit the blind model so we only need a likelihood function for the sighted version.
-
-# %%
-
-@njit
-def llh_sights(parameters, states, actions, rewards):
-
-    alpha_pos = parameters[0]
-    beta = parameters[1]
-    alpha_neg = 0
-
-    trialcount = len(actions)
-    choice_probs = np.zeros(trialcount)
-
-    for trial in range(trialcount):
-
-        if trial % 45 == 0:
-            Q = np.ones((3, 3)) / 3.0
-
-        observation = states[trial]
-        Q_row = Q[observation]
-        prob_choice = np.exp(beta * Q_row) / np.sum(np.exp(beta * Q_row))
-
-        action = actions[trial]
-        choice_probs[trial] = prob_choice[action]
-
-        reward = rewards[trial]
-        delta = reward - Q[observation, action]
-        if delta > 0:
-            Q[observation, action] += alpha_pos * delta
-        elif delta < 0:
-            Q[observation, action] += alpha_neg * delta
-
-    loglikelihood = np.sum(np.log(choice_probs))
-    return -loglikelihood
-
-# %% [markdown]
-
-# The posterior function is used to get the likelihood values for figure B
-
-# %%
-def posterior(parms, states, actions, rewards):
-
-    alpha_pos = parms[0]
-    beta = parms[1]
-    alpha_neg = 0
-
-    trialcount = len(actions)
-    likehoods = np.zeros(trialcount)
-
-    for trial in range(trialcount):
-
-        if trial % 45 == 0:
-            Q = np.ones((3, 3)) / 3.0
-
-        obs = states[trial]
-        Q_row = Q[obs]
-        probs = np.exp(beta * Q_row) / np.sum(np.exp(beta * Q_row))
-        action = actions[trial]
-        reward = rewards[trial]
-        delta = reward - Q[obs, action]
-        if delta > 0:
-            Q[obs, action] += alpha_pos * delta
-        elif delta < 0:
-            Q[obs, action] += alpha_neg * delta
-
-        likehoods[trial] = probs[action]
-
-    return likehoods
-
-
-# %% [markdown]
-
-# `fitRL` wraps our likelihood and posterior functions. We also run the minimization 10 times to find the best global optimum.
+# `fitRL` wraps our likelihood and posterior functions. The posterior function is used to get the likelihood values for figure B so that we can plot them. We also run the minimization 10 times to find the best global optimum.
 
 # %%
 def fitRL(states, actions, rewards):
@@ -325,83 +172,90 @@ for simulation in range(sim_count):
 
 
 # %% [markdown]
+
+# ## collating the data
+# %%
+combined_columns = ['simcount', 'trial', 'model', 'p_correct', 'figure']
+all_sims = pd.DataFrame(columns = combined_columns)
+
+for simnum in range(sim_count):
+    # figure a
+    rows_sim_blinds = [
+        (simnum, x, 'blind', sim_blinds[simnum][x], 'a')
+        for x in range(15)
+    ]
+    rows_sim_sights = [
+        (simnum, x, 'sights', sim_sights[simnum][x], 'a')
+        for x in range(15)
+    ]
+    # figure b
+    rows_like_blinds = [
+        (simnum, x, 'blind', like_blinds[simnum][x], 'b')
+        for x in range(15)
+    ]
+    rows_like_sights = [
+        (simnum, x, 'sights', like_sights[simnum][x], 'b')
+        for x in range(15)
+    ]
+    # figure c
+    rows_simfit_blinds = [
+        (simnum, x, 'blind', simfit_blind[simnum][x], 'c')
+        for x in range(15)
+    ]
+    rows_simfit_sights = [
+        (simnum, x, 'sights', simfit_sight[simnum][x], 'c')
+        for x in range(15)
+    ]
+    simrun_data = rows_sim_blinds + rows_sim_sights + rows_like_blinds + rows_like_sights + rows_simfit_blinds + rows_simfit_sights
+    simrun_df = pd.DataFrame(columns = combined_columns, data = simrun_data)
+    all_sims = pd.concat([all_sims, simrun_df])
+
+df_combo
+all_sims
+# %% [markdown]
 # ## Figure A
+
 # %%
 sns.set(rc={"figure.figsize": (3, 3), "figure.dpi": 100})
-columns_a = ['sim', 'trial', 'model', 'p_correct']
 
-df_a = pd.DataFrame(columns=columns_a)
-for simnum in range(sim_count):
-    rows = [(simnum, x, 'blind', sim_blinds[simnum][x]) for x in range(15)]
-    temp_df = pd.DataFrame(columns=columns_a, data=rows)
-    df_a = pd.concat([df_a, temp_df])
-
-    rows = [(simnum, x, 'sights', sim_sights[simnum][x]) for x in range(15)]
-    temp_df = pd.DataFrame(columns=columns_a, data=rows)
-    df_a = pd.concat([df_a, temp_df])
-
-fig = sns.lineplot(data=df_a, x='trial', y='p_correct', hue='model')
+fig = sns.lineplot(
+    data = all_sims.query("figure == 'a'"),
+    x = 'trial',
+    y = 'p_correct',
+    hue = 'model'
+)
 fig.set(ylim = (0.2, 1));
-
 
 # %% [markdown]
 # ## Figure B
 # %%
-columns_b = ['simcount', 'trial', 'data_model', 'p_like']
-
-df_b = pd.DataFrame(columns=columns_b)
-for simnum in range(sim_count):
-    rows = [(simnum, x, 'blind', like_blinds[simnum][x]) for x in range(15)]
-    temp_df = pd.DataFrame(columns=columns_b, data=rows)
-    df_b = pd.concat([df_b, temp_df])
-
-    rows = [(simnum, x, 'sights', like_sights[simnum][x]) for x in range(15)]
-    temp_df = pd.DataFrame(columns=columns_b, data=rows)
-    df_b = pd.concat([df_b, temp_df])
-
-fig = sns.lineplot(data=df_b, x='trial', y='p_like', hue='data_model')
-fig.set(ylim = (0.2, 1));
-
+fig = sns.lineplot(
+    data = all_sims.query("figure == 'b'"),
+    x = 'trial',
+    y = 'p_correct',
+    hue = 'model'
+)
+fig.set(ylim = (0.2, 1), ylabel = "likelihood of choice");
 
 # %% [markdown]
 # # Figure C
 # %%
-columns_c = ['simcount', 'trial', 'sim_model', 'p_correct']
-
-df_c = pd.DataFrame(columns=columns_c)
-for simnum in range(sim_count):
-    rows = [(simnum, x, 'blind', simfit_blind[simnum][x]) for x in range(15)]
-    temp_df = pd.DataFrame(columns=columns_c, data=rows)
-    df_c = pd.concat([df_c, temp_df])
-
-    rows = [(simnum, x, 'sights', simfit_sight[simnum][x]) for x in range(15)]
-    temp_df = pd.DataFrame(columns=columns_c, data=rows)
-    df_c = pd.concat([df_c, temp_df])
-
-fig = sns.lineplot(data=df_c, x='trial', y='p_correct', hue='sim_model')
+fig = sns.lineplot(
+    data = all_sims.query("figure == 'c'"),
+    x = 'trial',
+    y = 'p_correct',
+    hue = 'model'
+)
 fig.set(ylim = (0.2, 1));
-
 
 # %% [markdown]
 
 # ## Plotting all together
 
-# nice to see plots next to each other, but to do this we need to have the same column names which may or may not be more confusing. especially for the middle plot, we can't get seaborn to change its y-axis name as it should be likelihood and not p(correct).
+# It's nice to see the plots next to each other, but to do this we need to have the same column names which may or may not be more confusing. Especially for the middle plot, we can't get seaborn to change its y-axis name as it should be likelihood and not p(correct). If you happen to know how to do this please let me know!
 
 # %%
-df_a = df_a.rename(columns={'sim': 'simcount'})
-df_a['fig'] = 'a'
-
-df_b = df_b.rename(columns={'data_model': 'model'})
-df_b = df_b.rename(columns={'p_like': 'p_correct'})
-df_b['fig'] = 'b'
-
-df_c = df_c.rename(columns={'sim_model': 'model'})
-df_c['fig'] = 'c'
-
-df_combo = df_a.append(df_b).append(df_c)
-
-grid = sns.FacetGrid(df_combo, col='fig', hue='model')
+grid = sns.FacetGrid(all_sims, col = 'figure', hue = 'model')
 grid.map(sns.lineplot, 'trial', 'p_correct')
 grid.add_legend()
 grid.set_xlabels("time step")
@@ -409,9 +263,9 @@ grid.set(ylim=(0.2, 1), xlim=(-1, 15), xticks=[0, 5, 10, 14])
 grid.set_ylabels("p(correct)")
 # grid.despine()
 axes = grid.axes.flatten()
-axes[0].set_title("'subject' learning curves")
+axes[0].set_title("A: 'subject' learning curves")
 axes[0].set_ylabel("p(correct)")
-axes[1].set_title("likelihood of \nstate-based RL model")
+axes[1].set_title("B: likelihood of \nstate-based RL model")
 axes[1].set_ylabel("likelihood of choice")
-axes[2].set_title("simulated learning curves \nfrom state-based RL")
-axes[2].set_ylabel("p(correct)")
+axes[2].set_title("C: simulated learning curves \nfrom state-based RL")
+axes[2].set_ylabel("p(correct)");
