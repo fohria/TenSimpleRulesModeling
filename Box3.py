@@ -6,6 +6,12 @@
 
 # I mention this because I *think* I've gotten the task and model right, but there may be some discrepancies left. However, this shouldn't matter for the principles shown.
 
+# ## What we will do
+
+# We are going to simulate one participant, then use the output behavioural data to plot a likelihood heatmap for many combinations of the four parameters.
+
+# What does that mean you ask? Well, remember at the end of Box2 where we looked at the behaviour of model 3 for different parameter values? That's what we are doing here, but now we only have one simulation/participant. So based on the actions and received rewards - the observed data - we will find what parameter values were most likely used to generate that data.
+
 # ## Experimental task
 
 # Our simulated participants will partake in a task where they see a picture (stimulus) and through trial-and-error have to learn which of three buttons (our actions or choices) to push to receive a reward. The experiment has multiple blocks, each with a different number of stimuli ranging from 2 to 6 (`setsize` variable below). Every block is repeated three times, so we have a total of $5 * 3 = 15$ blocks. Within a block, each stimuli is repeated 15 times giving us a total of $(2 + 3 + 4 + 5 + 6) * 15 = 300$ trials, and including the block repeats we thus have $300 * 3 = 900$ trials in total.
@@ -31,10 +37,6 @@
 # $$p(action) = (1 - w) * p_{RL} + w * p_{WM}$$
 
 # where $w = \rho * min(1, \frac{K}{ns})$, where $ns$ is number of stimuli and $K$ can be seen as scaling the mixture weight in proportion to working memory capacity vs number of stimuli.
-
-# ## what we will do
-
-# we will first simulate one participant, then use that data to plot a likelihood heatmap for many combinations of the four parameters.
 
 # ## import libraries and functions
 # %%

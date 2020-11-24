@@ -44,7 +44,7 @@ simulation_count = 110  # Nrep in matlab code
 all_sims = [{'actions': [], 'rewards': []} for _ in range(6)]
 # %% [markdown]
 
-# I use the concept of one bandit with many arms. So each item in the `bandit` variable represents an arm, and the item values the probability of reward for pulling that arm.
+# I use the concept of one bandit with many arms. So each item in the `bandit` variable represents an arm, and the item values represents the probability of reward for pulling that arm.
 
 # I prefer to think of repeated simulations of the same model as several participants of the same "type", so instead of `Nrep` for number of repetitions we have `simulation_count` for number of artificial/fake/simulated participants.
 
@@ -108,22 +108,22 @@ for _ in range(simulation_count):
     all_sims[5]['rewards'].append(rewards)
 
 # %% [markdown]
-# ## WSLS analysis (figure A)
+# ## WSLS analysis (paper figure A)
 # This bit can be a bit confusing. The strategy/algorithm is called win-stay lose-shift, but what we will calculate below is actually win-stay and lose-*stay* values. That's because we then plot the probability of staying depending on previous reward. Matlab code doesn't comment on this, or that the function is called `wsls` but actually returns the values in `lsws` order.
 
 # More to the point; what we will do is plot the probability of making the same choice as on the previous trial, $p(stay)$ on the y-axis, against whether a reward was received on the last trial or not (0 or 1 for no reward or reward, respectively) on the x-axis. This gives us some idea about the difference in behaviour between the models and allows us to consider if what we see makes sense. For example, the win-stay, lose-shift model (Model 2) should always stay ($p(stay) = 1$) if the last action was rewarded (`previous reward = 1`) and always switch ($p(stay) = 0$) if the last action was not rewarded (`previous reward = 0`).
 
 # ### create dataframe
 
-# By creating a dataframe and organizing the data with the principles of "tidy data", we can plot with fewer lines and also get the bonus of automatic variance shadow for each line. An additional bonus is we can try other types of plots very easily, because seaborn understands the data format.
+# By creating a dataframe and organizing the data with the principles of "tidy data", we can plot with fewer lines of code and also get the bonus of automatic variance shadowing for each line. An additional bonus is that we can easily try other types of plots; because seaborn understands the data format, we don't have to format the data for each specific plot.
 
-# Tidy data is not what the paper is about, but definitely worth the time when you're exploring your data and may not be sure what type of plot is best to make you understand what's going on. The tricky part in my experience is saving the simulation data in a way so you can separate running the simulations and creating the dataframe.
+# [Tidy data](http://www.jstatsoft.org/v59/i10/paper) is not what the paper is about, but definitely worth the time when you're exploring your data and may not be sure what type of plot is best to make you understand what's going on. The tricky part in my experience is saving the simulation data in a way so you can separate running the simulations and creating the dataframe. We want to separate those two, as creating and manipulating the dataframe is fairly computationally expensive.
 
 # %%
 columns = ['p(stay)', 'previous reward', 'model']
 winstay_dataframe = pd.DataFrame(columns = columns)
 
-for model in range(1, len(all_sims)):
+for model in range(1, len(all_sims)):  # model0 is our dummy entry
 
     rows = []
     for participant in range(simulation_count):
@@ -158,33 +158,33 @@ fig = sns.lineplot(
     hue = 'model',
     marker = 'o'
 )
-# we can use ; to suppress printing the ticks and limits
+# we can use ; to suppress showing ticks and limits in text
 fig.set(ylim = (0, 1), yticks = (0, 0.5, 1), xticks = (0, 1));
 # fig.legend(['M1: random', 'M2: WSLS', 'M3: RW', 'M4: CK', 'M5: RW+CK'])
 
 # %% [markdown]
 
+# This is where we stop and smell the figure, so to speak. Does the behaviour of our models make sense?
+
 # If any of the models would have performance that varied wildly between participants (simulation runs), we would see that here. Thankfully, it looks like M4 is the only model where $p(stay)$ has visible variance, and even there it's not much. So I think we're good!
 
-# This is with 1000 trials, i.e. 1000 pulls. Would that variance be higher with 100 pulls? We can easily check that by changing `trialcount` in the experimental parameters above and rerun the simulations.
+# This is with 1000 trials, i.e. 1000 pulls. Would that variance be higher with 100 pulls? We can easily check that by changing `trialcount` in the experimental parameters above and rerun the simulations. Same goes for `simulation_count`; how is the behaviour affected by fewer participants?
 
 # %% [markdown]
 
-# ## p(correct) analysis (figure B)
+# ## p(correct) analysis (paper figure B)
 
 # Now we're going to look at a single model, Model 3, and how it behaves for different combinations of its two parameters $\alpha$ and $\beta$.
 
 # We create arrays for the parameter values to test, and set the number of simulations (participants) for each parameter combination to `100`.
 
-# Again, we create a dataframe with columns for each parameter value and the proportions of correct choices overall, for the first 10 trials and for the last 10 trials. Total number of trials is the same as set at the top of this file, `trialcount`.
+# The simulation data is saved in a dataframe with columns for each parameter value and the proportions of correct choices overall, for the first 10 trials and for the last 10 trials. Total number of trials is the same as what's set at the top of this file; `trialcount`.
 
-# Each row of this dataframe is one single simulation, so we are again usign the tidy data format, which allows seaborn to automagically plot variance intervals for us.
+# Each row of this dataframe is one single simulation, so we are again using the tidy data format, which allows seaborn to automagically plot variance intervals for us.
 
 # On my laptop I notice a definite delay before the plot appears if I've set `sim_count` to 1000 instead of 100. So that's the downside of being able to plot "dynamically". Heavy work to calculate all those means and variances :)
 
 # Small note: the paper says the following two figures uses 100 simulations per parameter combination, but I suspect it's actually 1000, based on how the lineplots look and that the matlab code uses 1000. The general pattern is the same though so it doesn't matter that much.
-
-#
 
 # %%
 alphas = np.arange(0.02, 1.02, 0.02)  # upper limit 1.02 is not inclusive
@@ -202,7 +202,7 @@ for alpha, beta, simnum in product(alphas, betas, sim_count):
     actions, rewards = simulate_M3RescorlaWagner(
         trialcount, bandit, alpha, beta)
 
-    imax = np.argmax(bandit)
+    imax = np.argmax(bandit)  # index of the best arm
     rows.append((
         alpha,
         beta,
@@ -257,3 +257,11 @@ fig4 = sns.lineplot(
     palette = 'colorblind'
 )
 fig4.set(ylim = (0.5, 1), xticks = (0, 0.5, 1));
+
+# %% [markdown]
+
+# Do the results make sense? Remember, the model has internal values for each arm.
+
+# The $\alpha$ parameter - learning rate - adjusts how much the internal value will change based on the received reward. Big $\alpha$, big changes (or steps as it's sometimes called). Small $\alpha$, small changes.
+
+# The $\beta$ parameter - inverse temperature - regulates how to pick what arm to pull next. Large $\beta$ values are "greedy", meaning the arm with the larger internal value will more often be picked. With low $\beta$ values, there's more exploration or in other words; more random behaviour.
