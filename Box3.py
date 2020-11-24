@@ -12,6 +12,10 @@
 
 # What does that mean you ask? Well, remember at the end of Box2 where we looked at the behaviour of model 3 for different parameter values? That's what we are doing here, but now we only have one simulation/participant. So based on the actions and received rewards - the observed data - we will find what parameter values were most likely used to generate that data.
 
+# ## Main takeaway
+
+# The main purpose here is to show how we can visualize the parameter space to get an idea of how close to the true parameters we can get. This can be tricky if there are multiple hot spots (local maxima). If you don't get how the model below works, don't worry, just skip that. The heatmap visualisation is the important bit; being able to see things to sanity check your work is always good.
+
 # ## Experimental task
 
 # Our simulated participants will partake in a task where they see a picture (stimulus) and through trial-and-error have to learn which of three buttons (our actions or choices) to push to receive a reward. The experiment has multiple blocks, each with a different number of stimuli ranging from 2 to 6 (`setsize` variable below). Every block is repeated three times, so we have a total of $5 * 3 = 15$ blocks. Within a block, each stimuli is repeated 15 times giving us a total of $(2 + 3 + 4 + 5 + 6) * 15 = 300$ trials, and including the block repeats we thus have $300 * 3 = 900$ trials in total.
@@ -97,41 +101,31 @@ def simulate_participant():
             stimuli, choices, rewards = simulate_RLWM_block(
                 real_alpha, real_beta, real_rho, real_K, setsize)
 
-            # rows = [
-            #     (stimulus, choice, reward, setsize, block, trial)
-            #     for trial, (stimulus, choice, reward)
-            #     in enumerate(zip(stimuli, choices, rewards))
-            # ]
-            #
-            # for row in rows:
-            #     data.append(row)
-
-            data.append([stimuli, choices, rewards])  #single line
-
-            # data.append(rows)
+            data.append([stimuli, choices, rewards])
 
     return data
 
 data = simulate_participant()
 
-# column_names = [
-#     'stimulus', 'choice', 'reward', 'setsize', 'block', 'trial'
-# ]
-# df = pd.DataFrame(columns=column_names, data=data)
-
 # %% [markdown]
 
-# The matlab code has a manual quirk here to check if the performance decreases with increasing setsize. I suspect parameter recovery is better when this pattern is true, but unfortunately there is no discussion in the code or the paper about this. I've chosen not to care about this, but will comment on the problem of recovery after our first heatmap plot.
+# ## check behavioural output
 
-# Actually, let's check that and see how/if it affects the beta recovery later. Later: actually, yes, with simulation results like this:
+# The matlab code has a manual check here to see if performance decreases with increasing setsize. From testing with different results I've come to suspect that parameter recovery is better when this pattern is true, but unfortunately there is no discussion in the code or the paper about this.
+
+# In other words, with simulation results like this:
 
 # setsize 2 mean: 0.9333333333333335
+
 # setsize 3 mean: 0.8962962962962963
+
 # setsize 4 mean: 0.8944444444444444
+
 # setsize 5 mean: 0.8755555555555556
+
 # setsize 6 mean: 0.8481481481481481
 
-# We get fitted parameters that are very very close to real parameters.
+# We get fitted (found) parameters that are much closer to real parameters than with simulated data without this decreasing pattern.
 
 # %%
 mean_rewards = {2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
@@ -249,7 +243,7 @@ print(f"best alpha, rho: {best_alpha}, {best_rho}")
 
 # Note that seaborn/matplotlib puts the upmost part of the y-axis labels where their corresponding boxes are, so it might look a bit off vertically.
 
-# Now, in the case of our brute force search above, we found that the best likelihood wasn't actually found at the real/simulated parameter values. If we re-run the simulation and brute force again we may or may not get closer.
+# Now, in the case of our brute force search above, we found that the best likelihood wasn't actually found at the real/simulated parameter values. If we re-run the simulation and brute force again we may or may not get closer. Please do rerun the simulation and brute force search yourself a few times to see this for yourself :)
 
 # This is unfortunately something we have to accept; the problem of recovering parameter values is a statistical one and therefore we are going to get slightly different results every time. We will see in the next box, Box4, how to check the overall performance of parameter recovery.
 
@@ -261,7 +255,7 @@ print(f"best alpha, rho: {best_alpha}, {best_rho}")
 
 # The downside of this function is that it can get stuck in local minima, so it's a good idea to give it a bunch of random starting points. The brute force method doesn't have this problem as it will methodically go through the entire parameter space with the "resolution" (number of parameter combinations) we have chosen.
 
-# The upside is it can often be much quicker, especially if we create an optimized likelihood function with numba.
+# The upside is that `minimize` can often be much quicker than brute force, especially if we create an optimized likelihood function with numba. So depending on your available hardware power, size of dataset(s) and available time you can decide what tradeoffs you want.
 
 # ## optimized likelihood function
 
@@ -269,7 +263,7 @@ print(f"best alpha, rho: {best_alpha}, {best_rho}")
 
 # First we need to reshape our simulation data, because numpy/numba doesn't like "ragged" arrays, meaning arrays of different lengths.
 
-# Somewhat ugly but can be cleaned if we save the simulation data smarter.
+# Somewhat ugly but could be cleaned up if we had saved the simulation data smarter.
 
 # %%
 def reshape_simdata(data):
@@ -367,8 +361,19 @@ def fit_participant(stimuli, choices, rewards, block_indeces):
     return results
 
 results = fit_participant(stimuli, choices, rewards, block_indeces)
-results
+# results
+results[1]
 # %% [markdown]
+
+# That's a lot of weird text we printed, if you've never used `minimize` before. First of all we only print one of the results to make it easier to explain. You can print all the results if you want to manually compare the outputs.
+
+# Most important of the returned values here are:
+
+# - `fun` which is the negative loglikelihood (a positive value so that `minimize` can, well, minimize it).
+# - `success` which tells us if the function completed successfully or not. Sometimes it crashes which can be an indication we constructed our likelihood function in the wrong way, or that the likelihood function is simply too complicated. By looking at the `message` part we can see what may be the cause if `success` is false.
+# - `x` is of course what we're interested in here; the actual parameter values that were found. They are returned in the order we input them so here they are `alpha`, `beta`, `rho`, respectively.
+
+# ## plot the likelihood heatmap
 
 # Now we can get the best result from minimize and plot on our heatmap for comparison, and complete figure A.
 
@@ -414,11 +419,13 @@ print(f"blue star - best minfitted alpha, rho: {best_fit_alpha}, {best_fit_rho}"
 
 # %% [markdown]
 
-# With a few iterations of `minimize` and enough parameter combinations for the brute force method, they mostly reach the same result. The brute force method is needed to plot the likelihood surface/heatmap which is good for checking your likelihood function works as expected. When you've done that it may be more convenient to use the `minimize` directly. An additional benefit of `minimize` is that it is usually able to find
+# With a few iterations of `minimize` and enough parameter combinations for the brute force method, they mostly reach the same result. The brute force method is needed to plot the likelihood surface/heatmap which is good for checking your likelihood function works as expected. When you've done that it may be more convenient to use the `minimize` directly for subsequent runs.
 
 # Speaking of checking likelihood function, in some situations our plots above give us results that look off. Meaning they are not at the "max" of the surface. That's not an error, because we are only plotting two out of three estimated parameters.
 
-# So if we check what the likelihoods are in our hot data for the best results and the real values we see the real values indeed has a better likelihood.
+# > Sidenote: We could plot a 3D surface to see this more clearly, but first of all that's a bit complicated in seaborn and secondly there will often be the case we have models with more than three parameters so just get used to plotting several 2d plots :)
+
+# Anyway, if we check what the likelihoods are in our hot data for the best results and the real values we see the real values indeed has a better likelihood.
 
 # %%
 print(f"likelihood for best result: {hot_data.iloc[y_mark_best, x_mark_best]}")
@@ -435,7 +442,7 @@ print(brute_results.query("loglike == @best_loglike"))
 
 #%% [markdown]
 
-# Beta estimation isn't great, but as previously mentioned, this is not something the paper discusses. Running the matlab code gives wildly different distances to the true beta depending on the simulation, so for the next step and figure, be aware that the plot doesn't show how far we are to the real parameters, only how far away we are from the best parameters we can fit.
+# Beta estimation isn't always great, but as previously mentioned, this is not something the paper discusses. Running the matlab code gives wildly different distances to the true beta depending on the simulation, so for the next step and figure, be aware that the plot doesn't show how far we are to the real parameters, only how far away we are from the best parameters we can fit.
 
 # ## how many starting guesses before we find global max?
 
@@ -492,3 +499,7 @@ fig = sns.lineplot(
     y='best dist so far'
 )
 fig.set(yscale="log");
+
+# %% [markdown]
+
+# What does this plot mean? It means that on average, the more calls to `minimize` we do with random starting points, the closer we get to the true paramete values. However, on the first iteration we're mostly "just" around `10^-3` (at least with the runs made when writing this) away from the true values. So depending on at what step of your analysis you are, you may choose to call `minimize` just once. Or 100 times if you want to fine tune the results towards the end of your analysis. These decisions are always a question of "it depends" :) 
