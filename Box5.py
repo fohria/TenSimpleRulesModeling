@@ -1,4 +1,4 @@
-# %% [markdown]
+# %% markdown
 
 # # Box 5 - Confusion matrices in the bandit task
 
@@ -21,7 +21,7 @@ from SimulationFunctions.simulate_M4ChoiceKernel import simulate_M4ChoiceKernel
 from SimulationFunctions.simulate_M5RWCK import simulate_M5RWCK
 from FittingFunctions.fit_all import fit_all
 
-# %% [markdown]
+# %% markdown
 
 # ## Experiment parameters
 
@@ -29,7 +29,7 @@ from FittingFunctions.fit_all import fit_all
 
 # In the paper, their figure A and C allows for $\beta < 1$. That's equivalent to setting `beta_increase` below to `0`. To generate data where $\beta > 1$, and get figures B and D, simply set `beta_increase` to `1`.
 
-# Running with `simfit_runcount` set to `100` takes ~ 1 min on my laptop. Thanks to having compiled our simulation and likelihood functions with numba, each `simfitrun` loop below went from taking ~1 min to ~800 **milliseconds**. Numba won't always provide such great improvement, but for those likelihood functions where we loop over the actions and rewards, numba is very ... rewarding.
+# Running with `simfit_runcount` set to `100` takes between 1 and 2 minutes on my laptop. Thanks to having compiled our simulation and likelihood functions with numba, each single `simfitrun` loop below went from taking ~1 min to ~800 **milliseconds**. Numba won't always provide such great improvement, but for those likelihood functions where we loop over the actions and rewards, numba is very ... rewarding.
 
 # %%
 trial_count = 1000  # T in paper terminology
@@ -37,11 +37,11 @@ bandit = np.array([0.2, 0.8])  # mu in paper terminology
 beta_increase = 1  # set to 0 for figure A, 1 for figure B
 simfit_runcount = 100  # how many times to simulate each model and fit
 
-# %% [markdown]
+# %% markdown
 
 # ## Simulate participants and fit models
 
-# We create an empty 5x5 matrix to hold our results. Each row represents the simulated model, with columns being the fitted models. Every loop, we first simulate model 1, then fit models 1-5 on the simulation data, and record in the confusion matrix what model had the best fit.
+# We create an empty 5x5 matrix to hold our results. Each row represents the simulated model, with columns being the fitted models. Every loop, we first simulate model 1, then fit models 1-5 on the simulation data, and record in the confusion matrix what model had the best fit. We then simulate model 2 and fit models 1 and 3-5 on that data, and so on for all the models.
 
 # The `fit_all` function is a short wrapper around individual model specific fitting functions, each using scipy's `minimize` function to estimate parameter values and also returning the BIC value of the model's fit. The [BIC value](https://en.wikipedia.org/wiki/Bayesian_information_criterion) is what's used to decide what model was the best fit.
 
@@ -106,7 +106,7 @@ for simfitrun in range(simfit_runcount):
     _, _, best = fit_all(actions, rewards)
     confusion_matrix[4, :] += best
 
-#%% [markdown]
+#%% markdown
 
 # ## Plot confusion matrix
 
@@ -117,7 +117,11 @@ fig = sns.heatmap(
     confusion_matrix / simfit_runcount, annot = True, cmap = cmap)
 fig.set(xlabel = "fit model", ylabel = "simulated model");
 
-# %% [markdown]
+# %% markdown
+
+# In the heatmap above, the row represents the model that was simulated, and the columns the model that was fitted. The model names are 0 indexed in the heatmap so 0 is actually model 1, etc. The values are ratios, so for the top left box we would like to see a `1` as that means our model 0/1 is the best fitting model in 100% of the `simfit` runs. Taken across the entire heatmap, what we want then - ideally - is to see a diagonal of 1s from top left to bottom right.
+
+# Unfortunately, that's not what we see. The exact values will differ between runs (thanks randomness), but for model on row 3 (model 4) we see that it only fits itself best in around 80% of the cases. Row (model 5) is even worse, only around 70%.
 
 # ## Plot inverse confusion matrix
 
@@ -129,6 +133,14 @@ fig.set(xlabel = "fit model", ylabel = "simulated model");
 
 # I'm not sure i understand the "unless model recovery is perfect", what is the inversion matrix really?
 
+# alan explains it as follows:
+
+# > the inversion matrix is just flipping the results around to match the knowledge we gain when we model actual data and do not know which model was operating. So, the inversion matrix I(M,N) simply contains the probabilities that model M is the true underlying model (from the set of models being considered) GIVEN that model N is the best fitting model, for all M and N
+
+# > This contrasts with the confusion matrix C(N,M) which simply records the probability that model N is the best fitting model GIVEN that model M was the true underlying model (the one that you used to simulate the data).
+
+# > If your model parameter recovery is perfect then each of the above matrices has 1s on the leading diagonals and zero elsewhere. Therefore they become the same in this perfect case
+
 # %%
 inverse_confmatrix = np.zeros_like(confusion_matrix)
 for column in range(inverse_confmatrix.shape[1]):
@@ -138,7 +150,7 @@ for column in range(inverse_confmatrix.shape[1]):
 fig = sns.heatmap(inverse_confmatrix, annot = True, cmap = cmap)
 fig.set(xlabel = "fit model", ylabel = "simulated model");
 
-# %% [markdown]
+# %% markdown
 
 # ## Discussion
 
@@ -147,3 +159,13 @@ fig.set(xlabel = "fit model", ylabel = "simulated model");
 # > "As with parameter recovery, we believe that the best approach is to match the range of the parameters to the range seen in your data, or to the range that you expect from prior work."
 
 # So, I know what we're doing is fiddly and messy, but is the advice to look at your experimental data really the best? it feels like there's an issue methodologically there, unless the data you're talking about is explicitly a pilot experiment to explore what parameter ranges your human participant data gives you?
+
+# alan explains:
+
+# parameter range issues are serious (Dominic spent many months trying to get his head around this issue), so you need to set limits of parameter ranges generally. This is why I don't like the softmax paramater because beta can run to +infinity but for any value above about 5-10 the model always performs the same (ie almost deterministically -- it will pick the action with the higher value, however small the value advantage is over the other choices). So, it would be impossible to recover betas accurately if your simulated data were all simulated with beta ranging from 10-50 say. They are offering some not entirely satisfactory advice here.
+
+# they say
+
+# > we believe that the best approach is to match the range of the parameters to the range seen in your data, or to the range that you expect from prior work
+
+# i would suggest focusing on the range that has returned good fits on similar tasks in previous work. Or I would try to use parameters which have effects over wide parts of their possible ranges and transform parameters to better ranges where you can.

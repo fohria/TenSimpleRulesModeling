@@ -1,7 +1,13 @@
 ## todo
 
+- [ ] mention something about using numba in this readme
+- [ ] test jupytext with # %% markdown style for cells
+- [ ] add more plots with many figures on same line, we can do that in seaborn now!
+- [ ] add more explanatory text to box6
+    - [ ] maybe test around with more parameter values to see and comment
 - [ ] remove this todo list
 - [ ] add box1 to go through the models and how theyre coded (can cite maths from paper and show code)
+    - [ ] box1 could make a nice blog post specifically about numba
     - [ ] remove todo at top in box2
 - [ ] resolve confusion about inverted confusion matrices in box5
 - [ ] resolve discussion point at end of box5

@@ -1,4 +1,4 @@
-# %% [markdown]
+# %% markdown
 
 # # Box 6 - Improving parameter recovery by modeling unimportant parameters
 
@@ -20,6 +20,18 @@
 
 # So that's what I've done below..
 
+# alan explains later:
+
+# Yes? You simulated with bias so what are we supposed to learn here? That you're simulating a hypothetical person with such a bias? If so, the bias isn't an "unimportant" parameter, it's actually "there" so the biased model is actually a better model, not "unimportant", right?
+
+# > so you have understood exactly. you need to include the uninteresting process in the modelling in order to get good fits (assuming that the uninteresting process is actually at work in the proess generating the data)
+
+# I probably misunderstand again, but wouldn't a more interesting test be to simulate with Model M3 and see if Model B helps stabilize recovery of alpha & beta parameters?
+
+# > If there is no bias in the true data then including the bias parameter in the model should not help with the model fit -- the average bias parameter you should get out of your fits should be zero. It is an empirical question as to whether including the bias parameter might actually help recover the true alpha and beta when there was actually no bias in the data generating process i.e. the way you did it. Not sure whether this is more interesting -- it is a different question altogether. What did you find?
+
+
+
 # ## function and library imports
 
 # %%
@@ -37,11 +49,11 @@ from LikelihoodFunctions.lik_M3RescorlaWagner import lik_M3RescorlaWagner
 
 # reset seaborn to get decent looking grid
 sns.set()
-# %% [markdown]
+# %% markdown
 
 # ## Task description and simulation
 
-# The task used in this box is a variant of the standard bandit task used previously. But here we have 10 blocks, each with 50 trials. Every other block we switch which "arm" of the bandit is the better one.
+# The task used in this box is a variant of the standard bandit task used previously. But here we have 10 blocks, each with 50 trials. Every other block we switch which "arm" of the bandit is the better one. In academic parlance this is commonly called a "reversal learning task".
 
 # %%
 @njit
@@ -70,7 +82,7 @@ def simulate():
 
     return actions, rewards, [alpha, beta]
 
-# %% [markdown]
+# %% markdown
 
 # ## Model M3 likelihood adapted to the task
 
@@ -92,7 +104,7 @@ def llh_m3(parameters, actions, rewards):
 
     return total_llh
 
-# %% [markdown]
+# %% markdown
 
 # ## Model M likelihood
 
@@ -134,7 +146,7 @@ def llh_m3bias(parameters, actions, rewards):
     loglikelihood = np.sum(np.log(choice_probs))
     return -loglikelihood
 
-# %% [markdown]
+# %% markdown
 
 # ## fitting wrapper functions
 
@@ -179,14 +191,14 @@ def fitm3bias(actions, rewards):
     return best_fit, best_params
 
 
-# %% [markdown]
+# %% markdown
 
 # ## experimental parameters
 
 # %%
 simfitcount = 100  # number of simulations and fitting runs
 
-# %% [markdown]
+# %% markdown
 
 # ## simulation and fitting runs
 
@@ -222,7 +234,7 @@ for simfit in range(simfitcount):
         m3b_params[2]   # model bias bias
     ))
 
-# %% [markdown]
+# %% markdown
 
 # ## Plot fitted and real values for Model 3
 
@@ -250,7 +262,9 @@ fig = sns.lineplot(
 )
 fig.set(xlim = (0, 0.6), ylim = (0, 1), title = "M3 alpha");
 
-# %% [markdown]
+# %% markdown
+
+# explain above plot and code
 
 # ### Real beta vs fitted beta for M3
 
@@ -265,7 +279,9 @@ fig = sns.lineplot(
 )
 fig.set(xlim = (0, 10), ylim = (0, 10), title = "M3 beta")
 
-# %% [markdown]
+# %% markdown
+
+# add some explanatory text here
 
 # ## Plot fitted and real values for Model Bias
 
@@ -282,7 +298,7 @@ fig = sns.lineplot(
 )
 fig.set(xlim = (0, 0.6), ylim = (0, 1), title = "MB alpha");
 
-# %% [markdown]
+# %% markdown
 
 # ### Real beta vs fitted beta for MB
 
@@ -297,7 +313,7 @@ fig = sns.lineplot(
 )
 fig.set(xlim = (0, 10), ylim = (0, 10), title = "MB beta")
 
-# %% [markdown]
+# %% markdown
 
 # Plots look basically the same for both models, that's not an error. What happens here is that the bias parameter becomes basically zero for all the simulations because, well, we simulated without a bias.
 
@@ -305,8 +321,10 @@ fig.set(xlim = (0, 10), ylim = (0, 10), title = "MB beta")
 
 sns.histplot(fit_results['mb bias'], stat = 'probability')
 
-# %% [markdown]
+# %% markdown
 
 # ## Discussion
 
 # I guess we *could* see using the biased model to simulate instead of what we did here as more "interesting" in that it shows that fitting the biased model can account for a participant being biased? I don't know, it feels like I'm missing something here.
+
+# you know, we could do what we did above, and then reach the conclusion that, aha! see, this is what happens when there is no bias in the data! so if we do it again but this time simulate with the biased model, what do we get?

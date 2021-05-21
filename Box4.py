@@ -1,4 +1,4 @@
-# %% [markdown]
+# %% markdown
 
 # # Box 4 - parameter recovery in the reinforcement learning model
 
@@ -26,8 +26,13 @@ from SimulationFunctions.simulate_M3RescorlaWagner import simulate_M3RescorlaWag
 from LikelihoodFunctions.lik_M3RescorlaWagner import lik_M3RescorlaWagner as likelihood
 
 # reset look of graphs, gives a decent checkerboard background
-sns.set()
-# %% [markdown]
+sns.set(rc={
+    "figure.figsize": (8, 6),
+    "figure.dpi": 100,
+    "lines.markersize": 10,
+    "font.size": 10
+})
+# %% markdown
 
 # ## visualising distributions for parameter values
 
@@ -37,18 +42,22 @@ sns.set()
 # %%
 sns.histplot(np.random.uniform(0, 1, 100000), stat = 'probability')
 
-# %% [markdown]
+# %% markdown
 
-# ### $\beta ~ Exp(10)$
+# ### $\beta \sim Exp(10)$
 
 # Exponential distributions can be more difficult to visualise in your head, especially when it's modified by its "rate parameter" (lambda $\lambda$), in this case, 10.
 
 # %%
 sns.histplot(np.random.exponential(10, 100000), stat = 'probability')
 
-# %% [markdown]
+# %% markdown
 
 # We see in the graph that we can expect most values to be below 40, definitely below 60.
+
+### softmax
+
+# Our model has internal Q-values representing the value of each option. To make a choice, we use the softmax function to convert its internal Q-values into probabilities for each option.
 
 # If our model currently has Q-values for each arm as [0.4, 0.5], with a bigger beta, the more likely the bigger value will be picked. In other words; bigger beta, more greedy behaviour - the higher valued option will always be picked no matter how small the difference between the values. With betas closer to zero, the behaviour becomes more random and even a bigger difference between the option values will mean nothing.
 
@@ -56,19 +65,20 @@ sns.histplot(np.random.exponential(10, 100000), stat = 'probability')
 
 # %%
 beta = 0.01
-print(np.exp(beta * np.array([0.4, 0.5])) / sum(np.exp(beta * np.array([0.4, 0.5]))))
+q_values = np.array([0.4, 0.5])
+print(np.exp(beta * q_values) / sum(np.exp(beta * q_values)))
 
-# %% [markdown]
+# %% markdown
 
 # ## experiment parameters
 
 # %%
-# simulate and fit 1000 times
-sim_and_fit_count = 1000
+# simulate and fit 100 or 1000 times
+sim_and_fit_count = 1000  # 1000
 trial_count = 1000  # T in paper's terms
 bandit = np.array([0.2, 0.8])  # mu in paper's terms
 
-# %% [markdown]
+# %% markdown
 
 # ## simulation and fitting
 
@@ -124,9 +134,9 @@ sns.scatterplot(data=data, x='realalpha', y='fitalpha', hue='badalpha')
 
 print(f"ratio of bad alphas: {sum(data.badalpha) / sim_and_fit_count}")
 
-# %% [markdown]
+# %% markdown
 
-# So alpha plot looks pretty good. There's a strong correlation and only 3-4% of the fitted values are "bad".
+# So alpha plot looks pretty good. Why? There's a strong correlation between the real alpha and the fitted one, and only 3-4% of the fitted values are "bad".
 
 # Let's check the betas
 
@@ -134,23 +144,23 @@ print(f"ratio of bad alphas: {sum(data.badalpha) / sim_and_fit_count}")
 # notice we here mark bad alphas, not bad betas
 sns.scatterplot(data=data, x='realbeta', y='fitbeta', hue='badalpha')
 
-# %% [markdown]
+# %% markdown
 
-# As in the paper we see that fits are farily good at $\beta < 10$ and then get increasingly worse. Many of the values hit our upper bound for beta, even though their true value is not really close to 60. I suspect this is due to larger betas all have fairly greedy behavior. If we look closely, fits for $10 < \beta < 20$ arent *that* bad, there's still some correlation. But more than $20$, and we can't distinguish one greedy beta from another. Due to randomness we thus also sometimes get *really* greedy behaviour from low betas, hence why some $\beta < 20$ are estimated to be almost $60$.
+# As in the paper we see that fits are good (strong correlation) at $\beta < 10$ and then get increasingly worse. Many of the values hit our upper bound for beta, even though their true value is not really close to 60. I suspect this is due to larger betas all have fairly greedy behavior. If we look closely, fits for $10 < \beta < 20$ arent *that* bad, there's still some correlation. But more than $20$, and we can't distinguish one greedy beta from another. Due to randomness we thus also sometimes get *really* greedy behaviour from low betas, hence why some $\beta < 20$ are estimated to be almost $60$.
 
 # Moving along; it also looks like there are many more bad alphas in the alphas plot than in the betas plot, where did they all go? Let's plot only the betas that are/have badalphas so to speak:
 
 # %%
 sns.scatterplot(data=data.query('badalpha == True'), x='realbeta', y='fitbeta')
 
-# %% [markdown]
+# %% markdown
 # ahh it looks like all of them are likely around 0;
 
 # %%
 fig = sns.scatterplot(data=data.query('badalpha == True'), x='realbeta', y='fitbeta')
 fig.set(xlim=(0,1), ylim=(0,1))
 
-# %% [markdown]
+# %% markdown
 # Now we see it's when realbeta is < 1 that the fitting has issues. This makes sense, because with a very low beta, the behaviour becomes basically random. Any model would have issues fitting well if there is no pattern in the behaviour.
 
 # ## Recovery with fewer trials
@@ -182,9 +192,9 @@ fig.set(xlim = (ci_low - 0.1, ci_up + 0.1))
 fig.axvline(ci_low)
 fig.axvline(ci_up)
 
-# %% [markdown]
+# %% markdown
 
-# The graph shows we can expect that learning rate alpha will be off by 0.2 in 95% of our cases. Is that acceptable? I can't say, I guess that depends on the experimental task and your particular circumstances. But having this analysis, we can now go back and simulate/recover to see how much our uncertainty is impacted by different number of trials for example.
+# The graph shows we can expect that learning rate alpha will be off by 0.2 in 95% of our cases. Is that acceptable? I can't say, it completely depends on the experimental task and your particular circumstances. But having this analysis, we can now go back and simulate/recover to see how much our uncertainty is impacted by different number of trials for example.
 
 # What about uncertainty for $\beta$?
 
@@ -199,7 +209,7 @@ fig.set(xlim = (ci_low - 5, ci_up + 5))
 fig.axvline(ci_low)
 fig.axvline(ci_up)
 
-# %% [markdown]
+# %% markdown
 
 # This is much more uncertain, but not surprising as we already concluded that beta recovery is best when $1 < \beta < 10$. So if we check only those cases where we had a *fitted* value for beta within that interval (to pretend that we are investigating "real" behavioural data), we get:
 
@@ -216,7 +226,7 @@ fig.set(xlim = (ci_low - 5, ci_up + 5))
 fig.axvline(ci_low)
 fig.axvline(ci_up)
 
-# %% [markdown]
+# %% markdown
 
 # This is actually not too bad. But before we get too pleased with ourselves, let's do the inverse and filter based on the *real* beta values.
 
@@ -233,7 +243,7 @@ fig.set(xlim = (ci_low - 5, ci_up + 5))
 fig.axvline(ci_low)
 fig.axvline(ci_up)
 
-# %% [markdown]
+# %% markdown
 
 # It can look weird at first glance, but the small distances are due to calculations of $\beta_{real} - \beta_{fit}$ where $\beta_{fit}$ is very large, even hitting the upper bound of 60.
 

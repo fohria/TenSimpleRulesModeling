@@ -1,4 +1,4 @@
-# %% [markdown]
+# %% markdown
 
 # # Box2 - Simulate behaviour in the bandit task
 
@@ -33,16 +33,16 @@ from SimulationFunctions.simulate_M4ChoiceKernel import simulate_M4ChoiceKernel
 from SimulationFunctions.simulate_M5RWCK import simulate_M5RWCK
 from AnalysisFunctions.calculate_WSLS import winstay_losestay
 
-# %% [markdown]
+# %% markdown
 
 # ## define experimental parameters
 
 # %%
 trialcount = 1000  # number of trials, T in the paper
 bandit = np.array([0.2, 0.8])  # mu in the paper
-simulation_count = 110  # Nrep in matlab code
+simulation_count = 110  # Nrep in matlab code, a.k.a. number of participants
 all_sims = [{'actions': [], 'rewards': []} for _ in range(6)]
-# %% [markdown]
+# %% markdown
 
 # I use the concept of one bandit with many arms. So each item in the `bandit` variable represents an arm, and the item values represents the probability of reward for pulling that arm.
 
@@ -107,7 +107,7 @@ for _ in range(simulation_count):
     all_sims[5]['actions'].append(actions)
     all_sims[5]['rewards'].append(rewards)
 
-# %% [markdown]
+# %% markdown
 # ## WSLS analysis (paper figure A)
 # This bit can be a bit confusing. The strategy/algorithm is called win-stay lose-shift, but what we will calculate below is actually win-stay and lose-*stay* values. That's because we then plot the probability of staying depending on previous reward. Matlab code doesn't comment on this, or that the function is called `wsls` but actually returns the values in `lsws` order.
 
@@ -142,7 +142,7 @@ for model in range(1, len(all_sims)):  # model0 is our dummy entry
 # ### plot figure a
 # %%
 # setup the look of our plots
-sns.set(rc = {
+sns.set(rc = {  # rc sends options to matplotlib, which seaborn is based on
     "figure.figsize": (5, 6),
     "figure.dpi": 100,
     "lines.markersize": 15,
@@ -162,7 +162,7 @@ fig = sns.lineplot(
 fig.set(ylim = (0, 1), yticks = (0, 0.5, 1), xticks = (0, 1));
 # fig.legend(['M1: random', 'M2: WSLS', 'M3: RW', 'M4: CK', 'M5: RW+CK'])
 
-# %% [markdown]
+# %% markdown
 
 # This is where we stop and smell the figure, so to speak. Does the behaviour of our models make sense?
 
@@ -170,7 +170,7 @@ fig.set(ylim = (0, 1), yticks = (0, 0.5, 1), xticks = (0, 1));
 
 # This is with 1000 trials, i.e. 1000 pulls. Would that variance be higher with 100 pulls? We can easily check that by changing `trialcount` in the experimental parameters above and rerun the simulations. Same goes for `simulation_count`; how is the behaviour affected by fewer participants?
 
-# %% [markdown]
+# %% markdown
 
 # ## p(correct) analysis (paper figure B)
 
@@ -214,7 +214,7 @@ for alpha, beta, simnum in product(alphas, betas, sim_count):
 
 all_corrects = pd.DataFrame(columns = columns, data = rows)
 
-# %% [markdown]
+# %% markdown
 
 # ## plot early trials
 
@@ -228,7 +228,7 @@ fig2 = sns.lineplot(
 )
 fig2.set(ylim = (0.45, 1), xticks = (0, 0.5, 1));
 
-# %% [markdown]
+# %% markdown
 
 # ## plot late trials
 
@@ -242,11 +242,11 @@ fig3 = sns.lineplot(
 )
 fig3.set(ylim = (0.5, 1.05), xticks = (0, 0.5, 1));
 
-# %% [markdown]
+# %% markdown
 
 # ## plot overall correctness
 
-# Let's also plot the overall correctness across all trials for each of the parameter combinations, since we have saved that in our dataframe anyway.
+# Let's also plot the overall correctness across all trials for each of the parameter combinations, since we have that saved in our dataframe anyway.
 
 # %%
 fig4 = sns.lineplot(
@@ -258,7 +258,7 @@ fig4 = sns.lineplot(
 )
 fig4.set(ylim = (0.5, 1), xticks = (0, 0.5, 1));
 
-# %% [markdown]
+# %% markdown
 
 # Do the results make sense? Remember, the model has internal values for each arm.
 

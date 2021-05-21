@@ -1,4 +1,4 @@
-# %% [markdown]
+# %% markdown
 
 # # Box3 - contending with multiple local maxima
 
@@ -20,7 +20,7 @@
 
 # ## Experimental task
 
-# Our simulated participants will partake in a task where they see a picture (stimulus) and through trial-and-error have to learn which of three buttons (our actions or choices) to push to receive a reward. The experiment has multiple blocks, each with a different number of stimuli ranging from 2 to 6 (`setsize` variable below). Every block is repeated three times, so we have a total of $5 * 3 = 15$ blocks. Within a block, each stimuli is repeated 15 times giving us a total of $(2 + 3 + 4 + 5 + 6) * 15 = 300$ trials, and including the block repeats we thus have $300 * 3 = 900$ trials in total.
+# Our simulated participants will partake in a task where they see a picture (stimulus) and through trial-and-error have to learn which of three buttons (our actions/choices) to push to receive a reward. The experiment has multiple blocks, each with a different number of stimuli ranging from 2 to 6 (`setsize` variable below). Every block is repeated three times, so we have a total of $5 * 3 = 15$ blocks. Within a block, each stimuli is repeated 15 times giving us a total of $(2 + 3 + 4 + 5 + 6) * 15 = 300$ trials, and including the block repeats we thus have $300 * 3 = 900$ trials in total.
 
 # ## Learning model
 
@@ -60,7 +60,7 @@ from itertools import product
 from SimulationFunctions.simulate_RLWM import simulate_RLWM_block
 from LikelihoodFunctions.lik_RLWM import likelihood_RLWM_block
 
-# %% [markdown]
+# %% markdown
 
 # ## experimental parameters
 
@@ -84,7 +84,7 @@ rhos = np.arange(0.5, 1.0, 0.01)
 # Ks = np.arange(2, 7)
 Ks = np.array([4])  # matlab code keeps this constant
 
-# %% [markdown]
+# %% markdown
 
 # ## simulation
 
@@ -109,7 +109,7 @@ def simulate_participant():
 
 data = simulate_participant()
 
-# %% [markdown]
+# %% markdown
 
 # ## check behavioural output
 
@@ -139,7 +139,7 @@ for block in data:
 for setsize in mean_rewards:
     print(f"setsize {setsize} mean: {mean_rewards[setsize] / 3}")
 
-# %% [markdown]
+# %% markdown
 # ## calculate likelihood for all parameter combinations
 
 # we will now go through all the combinations of alpha, beta, rho and K we have and for each combination calculate the summed loglikelihood of all actions taken.
@@ -169,7 +169,7 @@ brute_results = pd.DataFrame(
     data = loglikes
 )
 
-# %% [markdown]
+# %% markdown
 
 # I'm allergic to importing matplotlib just to do seemingly simple things such as modifying the labels on the x/y axis. Seaborn works okay for most things without such sillyness, but heatmap is a bit too complicated so it's cumbersome to customize. So we have to manually round the parameter values (because python often generates 7.000000000000001 instead of 7.0), and then tell `sns.heatmap` we only want every fifth tick label.
 
@@ -241,15 +241,15 @@ fig = sns.scatterplot(
 print(f"real alpha, rho: {real_alpha}, {real_rho}")
 print(f"best alpha, rho: {best_alpha}, {best_rho}")
 
-# %% [markdown]
+# %% markdown
 
 # Note that seaborn/matplotlib puts the upmost part of the y-axis labels where their corresponding boxes are, so it might look a bit off vertically.
 
-# Now, in the case of our brute force search above, we found that the best likelihood wasn't actually found at the real/simulated parameter values. If we re-run the simulation and brute force again we may or may not get closer. Please do rerun the simulation and brute force search yourself a few times to see this for yourself :)
+# Now, in the case of our brute force search above, we found that the best likelihood wasn't actually found at the real/simulated parameter values. If we re-run the simulation and brute force again we may or may not get closer. Please do rerun the simulation and brute force search a few times to see this for yourself :)
 
 # This is unfortunately something we have to accept; the problem of recovering parameter values is a statistical one and therefore we are going to get slightly different results every time. We will see in the next box, Box4, how to check the overall performance of parameter recovery.
 
-# %% [markdown]
+# %% markdown
 
 # ## using optimization algorithms to find parameters
 
@@ -261,7 +261,7 @@ print(f"best alpha, rho: {best_alpha}, {best_rho}")
 
 # ## optimized likelihood function
 
-# %% [markdown]
+# %% markdown
 
 # First we need to reshape our simulation data, because numpy/numba doesn't like "ragged" arrays, meaning arrays of different lengths.
 
@@ -293,7 +293,7 @@ def reshape_simdata(data):
 
 stimuli, choices, rewards, block_indeces = reshape_simdata(data)
 
-# %% [markdown]
+# %% markdown
 
 # scipy's `minimize` function wants all the parameters in one variable. It also is, as you may have inferred from the name, a minimization function so we need to return the negative loglikelihood.
 
@@ -331,7 +331,7 @@ def recover_participant(
     return -loglike_allblocks
 
 
-# %% [markdown]
+# %% markdown
 
 # Now we run minimize 10 times and save the results to then extract the best result. It's almost always a good practice to provide bounds to the method, otherwise we may get over/underflow errors. This can happen anyway, but luckily `minimize` tells us if the operation was a success or not which is why we have that additional check before appending the result.
 
@@ -365,7 +365,7 @@ def fit_participant(stimuli, choices, rewards, block_indeces):
 results = fit_participant(stimuli, choices, rewards, block_indeces)
 # results
 results[1]
-# %% [markdown]
+# %% markdown
 
 # That's a lot of weird text we printed, if you've never used `minimize` before. First of all we only print one of the results to make it easier to explain. You can print all the results if you want to manually compare the outputs.
 
@@ -419,7 +419,7 @@ print(f"red x - real alpha, rho: {real_alpha}, {real_rho}")
 print(f"black dot - best brute force alpha, rho: {best_alpha}, {best_rho}")
 print(f"blue star - best minfitted alpha, rho: {best_fit_alpha}, {best_fit_rho}")
 
-# %% [markdown]
+# %% markdown
 
 # With a few iterations of `minimize` and enough parameter combinations for the brute force method, they mostly reach the same result. The brute force method is needed to plot the likelihood surface/heatmap which is good for checking your likelihood function works as expected. When you've done that it may be more convenient to use the `minimize` directly for subsequent runs.
 
@@ -433,7 +433,7 @@ print(f"blue star - best minfitted alpha, rho: {best_fit_alpha}, {best_fit_rho}"
 print(f"likelihood for best result: {hot_data.iloc[y_mark_best, x_mark_best]}")
 print(f"likelihood for real values: {hot_data.iloc[y_mark_real, x_mark_real]}")
 
-# %% [markdown]
+# %% markdown
 
 # But if we go back to our dataframe with estimated values for the $\beta$ parameter we can see that the best `loglike` is where it was plotted on the heatmap.
 
@@ -442,7 +442,7 @@ best_loglike = brute_results.loglike.max()
 print(f"best loglike: {best_loglike}")
 print(brute_results.query("loglike == @best_loglike"))
 
-#%% [markdown]
+#%% markdown
 
 # Beta estimation isn't always great, but as previously mentioned, this is not something the paper discusses. Running the matlab code gives wildly different distances to the true beta depending on the simulation, so for the next step and figure, be aware that the plot doesn't show how far we are to the real parameters, only how far away we are from the best parameters we can fit.
 
@@ -502,6 +502,6 @@ fig = sns.lineplot(
 )
 fig.set(yscale="log");
 
-# %% [markdown]
+# %% markdown
 
 # What does this plot mean? It means that on average, the more calls to `minimize` we do with random starting points, the closer we get to the true paramete values. However, on the first iteration we're mostly "just" around `10^-3` (at least with the runs made when writing this) away from the true values. So depending on at what step of your analysis you are, you may choose to call `minimize` just once. Or 100 times if you want to fine tune the results towards the end of your analysis. These decisions are always a question of "it depends" :)
