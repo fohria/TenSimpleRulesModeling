@@ -48,7 +48,7 @@ all_sims = [{'actions': [], 'rewards': []} for _ in range(6)]
 
 # I prefer to think of repeated simulations of the same model as several participants of the same "type", so instead of `Nrep` for number of repetitions we have `simulation_count` for number of artificial/fake/simulated participants.
 
-# We also setup `all_sims` to hold our results for the 5 models. To make it easier for my head, there's a dummy 0 entry in this list, so model1 has index 1, model2 has index2 etc.
+# We also setup `all_sims` to hold our results for the 5 models. To make the model numbers match with those of the paper, there's a dummy 0 entry in this list, so model1 has index 1, model2 has index2 etc.
 
 # ## Model 1 : random with bias
 
